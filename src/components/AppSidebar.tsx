@@ -2,12 +2,13 @@
 import { 
   BookOpen, 
   Users, 
-  GraduationCap, 
+  Github, 
   BarChart3, 
   Settings,
   Home,
   Calendar,
-  FileText
+  HelpCircle,
+  Gift
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -34,14 +35,19 @@ const navigationItems = [
     icon: Users,
   },
   {
-    title: "Cursos",
-    url: "/dashboard/courses",
+    title: "Benefícios GitHub",
+    url: "/dashboard/github-benefits",
+    icon: Gift,
+  },
+  {
+    title: "Guias e Tutoriais",
+    url: "/dashboard/guides",
     icon: BookOpen,
   },
   {
-    title: "Instrutores",
-    url: "/dashboard/instructors",
-    icon: GraduationCap,
+    title: "Suporte",
+    url: "/dashboard/support",
+    icon: HelpCircle,
   },
   {
     title: "Calendário",
@@ -52,11 +58,6 @@ const navigationItems = [
     title: "Relatórios",
     url: "/dashboard/reports",
     icon: BarChart3,
-  },
-  {
-    title: "Avaliações",
-    url: "/dashboard/assessments",
-    icon: FileText,
   },
   {
     title: "Configurações",
@@ -71,9 +72,9 @@ export function AppSidebar() {
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-white" />
+            <Github className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg">EduPlatform</span>
+          <span className="font-bold text-lg">EstudaMais.tech</span>
         </div>
       </SidebarHeader>
       

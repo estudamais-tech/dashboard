@@ -31,15 +31,26 @@ const App = () => (
               <Students />
             </DashboardLayout>
           } />
-          <Route path="/dashboard/courses" element={
-            <DashboardLayout>
-              <Courses />
-            </DashboardLayout>
-          } />
-          <Route path="/dashboard/instructors" element={
+          <Route path="/dashboard/github-benefits" element={
             <DashboardLayout>
               <div className="text-center py-12">
-                <h1 className="text-2xl font-bold">Instrutores</h1>
+                <h1 className="text-2xl font-bold">Benefícios GitHub</h1>
+                <p className="text-gray-600">Página em desenvolvimento</p>
+              </div>
+            </DashboardLayout>
+          } />
+          <Route path="/dashboard/guides" element={
+            <DashboardLayout>
+              <div className="text-center py-12">
+                <h1 className="text-2xl font-bold">Guias e Tutoriais</h1>
+                <p className="text-gray-600">Página em desenvolvimento</p>
+              </div>
+            </DashboardLayout>
+          } />
+          <Route path="/dashboard/support" element={
+            <DashboardLayout>
+              <div className="text-center py-12">
+                <h1 className="text-2xl font-bold">Suporte</h1>
                 <p className="text-gray-600">Página em desenvolvimento</p>
               </div>
             </DashboardLayout>
@@ -56,14 +67,6 @@ const App = () => (
             <DashboardLayout>
               <div className="text-center py-12">
                 <h1 className="text-2xl font-bold">Relatórios</h1>
-                <p className="text-gray-600">Página em desenvolvimento</p>
-              </div>
-            </DashboardLayout>
-          } />
-          <Route path="/dashboard/assessments" element={
-            <DashboardLayout>
-              <div className="text-center py-12">
-                <h1 className="text-2xl font-bold">Avaliações</h1>
                 <p className="text-gray-600">Página em desenvolvimento</p>
               </div>
             </DashboardLayout>
