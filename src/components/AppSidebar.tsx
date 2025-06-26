@@ -6,9 +6,12 @@ import {
   BarChart3, 
   Settings,
   Home,
-  Calendar,
+  Calculator,
   HelpCircle,
-  Gift
+  Gift,
+  Trophy,
+  Target,
+  MessageSquare
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -35,7 +38,17 @@ const navigationItems = [
     icon: Users,
   },
   {
-    title: "Benefícios GitHub",
+    title: "Calculadora de Investimento",
+    url: "/dashboard/calculator",
+    icon: Calculator,
+  },
+  {
+    title: "Jornada Gamificada",
+    url: "/dashboard/journey",
+    icon: Trophy,
+  },
+  {
+    title: "GitHub Student Pack",
     url: "/dashboard/github-benefits",
     icon: Gift,
   },
@@ -45,14 +58,19 @@ const navigationItems = [
     icon: BookOpen,
   },
   {
+    title: "Validação de Ideia",
+    url: "/dashboard/validation",
+    icon: Target,
+  },
+  {
+    title: "Chatbot IA",
+    url: "/dashboard/chatbot",
+    icon: MessageSquare,
+  },
+  {
     title: "Suporte",
     url: "/dashboard/support",
     icon: HelpCircle,
-  },
-  {
-    title: "Calendário",
-    url: "/dashboard/calendar",
-    icon: Calendar,
   },
   {
     title: "Relatórios",
@@ -71,16 +89,19 @@ export function AppSidebar() {
     <Sidebar className="w-64">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
             <Github className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg">EstudaMais.tech</span>
+          <div>
+            <span className="font-bold text-lg">EstudaMais.tech</span>
+            <p className="text-xs text-gray-500">Invista na sua carreira</p>
+          </div>
         </div>
       </SidebarHeader>
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navegação</SidebarGroupLabel>
+          <SidebarGroupLabel>Navegação Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
@@ -97,7 +118,7 @@ export function AppSidebar() {
                       }
                     >
                       <item.icon className="w-5 h-5" />
-                      <span>{item.title}</span>
+                      <span className="text-sm">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
