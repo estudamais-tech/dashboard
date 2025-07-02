@@ -20,7 +20,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard EstudaMais.tech</h1>
-        <p className="text-gray-600">Transformando o GitHub Student Pack em investimento na sua carreira - Até US$ 3.000 disponíveis!</p>
+        <p className="text-gray-600">Transformando o GitHub Student Pack em investimento na sua carreira - Mais de  US$ 200.000 disponíveis!</p>
       </div>
 
       {/* Métricas principais */}
