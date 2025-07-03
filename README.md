@@ -1,73 +1,86 @@
-# Welcome to your Lovable project
+# EstudaMais.tech – Setup e Arquitetura Inicial
 
-## Project info
+## Objetivo
 
-**URL**: https://lovable.dev/projects/d2609692-9f54-4f9c-b900-91b5700e22f2
+Dashboard para estudantes com métricas reais de benefícios de tecnologia, usando dados da API do GitHub. Integração completa: autenticação OAuth, consumo de dados reais e exibição via React.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Decisões Técnicas
 
-**Use Lovable**
+- **Monorepo**: Frontend e backend no mesmo repositório para facilitar integração e desenvolvimento (ideal para equipe pequena).
+- **Frontend**: React + TypeScript (pasta `/frontend`).
+- **Backend**: Node.js + Express (pasta `/backend`).
+- **Autenticação**: OAuth do GitHub via backend (tokens seguros, lógica de login do lado do servidor).
+- **Comunicação**: Front consome API REST local (`/api`) do backend.
+- **Proxy**: Configurado no frontend para facilitar dev local (`/api` → `localhost:3333`).
+- **Dependências isoladas**: Cada app com seu próprio `package.json`, mas scripts facilitadores na raiz para rodar tudo junto.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d2609692-9f54-4f9c-b900-91b5700e22f2) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## Estrutura do Repositório
+```
+estudamais/
+├── backend/
+│ ├── package.json
+│ └── src/
+├── frontend/
+│ ├── package.json
+│ └── src/
+├── package.json # scripts utilitários para dev
+└── README.md
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Setup Local (Desenvolvimento)
 
-**Use GitHub Codespaces**
+1. **Clone o projeto**
+    ```bash
+    git clone https://github.com/<sua-org>/estudamais.git
+    cd estudamais
+    ```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+2. **Instale dependências de todos os apps**
+    ```bash
+    npm install
+    ```
 
-## What technologies are used for this project?
+3. **Configuração do backend**
+    - Crie `.env` em `/backend` com:
+        ```
+        GITHUB_CLIENT_ID=...
+        GITHUB_CLIENT_SECRET=...
+        GITHUB_CALLBACK_URL=http://localhost:3333/api/auth/github/callback
+        ```
 
-This project is built with:
+4. **Rode tudo em paralelo**
+    ```bash
+    npm run dev
+    ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Scripts Úteis
 
-Simply open [Lovable](https://lovable.dev/projects/d2609692-9f54-4f9c-b900-91b5700e22f2) and click on Share -> Publish.
+- **`npm run dev`** — Sobe backend e frontend juntos
+- **`npm run dev:back`** — Sobe só o backend
+- **`npm run dev:front`** — Sobe só o frontend
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## Fluxo de Autenticação e Dados
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Usuário acessa frontend React.
+2. Clica para logar com GitHub → redireciona para `/api/auth/github` (backend).
+3. OAuth processado pelo backend (Express + Passport).
+4. Backend recebe token, pode buscar dados reais do usuário na API do GitHub.
+5. Backend fornece endpoints REST, que o frontend consome para montar o dashboard (números reais, sem mock).
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+## Convenções
+
+- Código organizado por feature/pasta.
+- Commits claros e diretos.
+- Sempre rodar localmente antes de PR.
