@@ -2,9 +2,9 @@ name: CI EstudaMais Frontend
 
 on:
   push:
-    branches: [ "main", "develop" ] # Gatilhos para branches main e develop
+    branches:  "main" 
   pull_request:
-    branches: [ "main", "develop" ] # Gatilhos para PRs para main e develop
+    branches:  "main"  
 
 jobs:
   build_and_lint:
