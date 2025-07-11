@@ -1,86 +1,94 @@
-# EstudaMais.tech – Setup e Arquitetura Inicial
+💻 EstudaMais.Tech – Setup e Arquitetura Inicial
+🎯 Objetivo
+Dashboard para estudantes com métricas reais de benefícios de tecnologia, usando dados da API do GitHub.
+Integração completa: autenticação OAuth, consumo de dados reais e exibição via React.
 
-## Objetivo
+⚙️ Decisões Técnicas
+Frontend: React + TypeScript (/frontend).
+Comunicação: Front consome API REST do backend externo.
+Proxy: Configurado no frontend para facilitar dev local (/api → backend local).
+Dependências isoladas: Frontend com seu próprio package.json.
+🛠️ Setup Local (Desenvolvimento)
+Clone o projeto
+git clone https://github.com/estudamais-tech/Frontend_estudamais.git
+cd Frontend_estudamais # Ajuste para o nome correto do repositório frontend
 
-Dashboard para estudantes com métricas reais de benefícios de tecnologia, usando dados da API do GitHub. Integração completa: autenticação OAuth, consumo de dados reais e exibição via React.
 
----
+Instale as dependências
 
-## Decisões Técnicas
+npm install
 
-- **Monorepo**: Frontend e backend no mesmo repositório para facilitar integração e desenvolvimento (ideal para equipe pequena).
-- **Frontend**: React + TypeScript (pasta `/frontend`).
-- **Backend**: Node.js + Express (pasta `/backend`).
-- **Autenticação**: OAuth do GitHub via backend (tokens seguros, lógica de login do lado do servidor).
-- **Comunicação**: Front consome API REST local (`/api`) do backend.
-- **Proxy**: Configurado no frontend para facilitar dev local (`/api` → `localhost:3333`).
-- **Dependências isoladas**: Cada app com seu próprio `package.json`, mas scripts facilitadores na raiz para rodar tudo junto.
+💻 Configuração do Frontend
+Crie um arquivo .env.local na raiz da pasta /frontend com o seguinte conteúdo:
 
----
 
-## Estrutura do Repositório
-```
-estudamais/
-├── backend/
-│ ├── package.json
-│ └── src/
-├── frontend/
-│ ├── package.json
-│ └── src/
-├── package.json # scripts utilitários para dev
-└── README.md
-```
+VITE_REACT_APP_GITHUB_CLIENT_ID=seu_client_id_do_github_frontend  
+VITE_REACT_APP_GITHUB_REDIRECT_URI=http://localhost:8080/dashboard  
+VITE_REACT_APP_BACKEND_API_URL=http://localhost:3001/api
 
----
+💡 Importante para o Frontend
+VITE_REACT_APP_GITHUB_CLIENT_ID: ID do seu aplicativo OAuth configurado no GitHub,  o mesmo usado para o backend
 
-## Setup Local (Desenvolvimento)
+VITE_REACT_APP_GITHUB_REDIRECT_URI=http://localhost:8080/dashboard - Deve ser exatamente igual à URL configurada no GitHub (em "Authorization callback URL"). o mesmo usado para o backend
 
-1. **Clone o projeto**
-    ```bash
-    git clone https://github.com/<sua-org>/estudamais.git
-    cd estudamais
-    ```
+VITE_REACT_APP_BACKEND_API_URL=http://localhost:3001/api - URL base da API do backend. Confirme que corresponde ao endereço onde o backend está rodando (externo ou local). 
 
-2. **Instale dependências de todos os apps**
-    ```bash
-    npm install
-    ```
+🔑 Como obter GITHUB_CLIENT_ID e GITHUB_CLIENT_SECRET
 
-3. **Configuração do backend**
-    - Crie `.env` em `/backend` com:
-        ```
-        GITHUB_CLIENT_ID=...
-        GITHUB_CLIENT_SECRET=...
-        GITHUB_CALLBACK_URL=http://localhost:3333/api/auth/github/callback
-        ```
+Acesse GitHub Developer Settings → OAuth Apps.
 
-4. **Rode tudo em paralelo**
-    ```bash
-    npm run dev
-    ```
+Clique em New OAuth App.
 
----
+Preencha:
 
-## Scripts Úteis
+Application name: EstudaMais (ou outro nome descritivo)
 
-- **`npm run dev`** — Sobe backend e frontend juntos
-- **`npm run dev:back`** — Sobe só o backend
-- **`npm run dev:front`** — Sobe só o frontend
+Homepage URL: http://localhost:8080
 
----
+Authorization callback URL: http://localhost:8080/dashboard
 
-## Fluxo de Autenticação e Dados
+Após criar, copie o Client ID e gere um Client Secret.
 
-1. Usuário acessa frontend React.
-2. Clica para logar com GitHub → redireciona para `/api/auth/github` (backend).
-3. OAuth processado pelo backend (Express + Passport).
-4. Backend recebe token, pode buscar dados reais do usuário na API do GitHub.
-5. Backend fornece endpoints REST, que o frontend consome para montar o dashboard (números reais, sem mock).
+Atualize o arquivo .env.local do frontend com essas informações.
 
----
+▶️ Rodando o projeto
 
-## Convenções
+npm run dev
+⚡ Scripts Úteis
+npm run dev — Sobe somente o frontend.
 
-- Código organizado por feature/pasta.
-- Commits claros e diretos.
-- Sempre rodar localmente antes de PR.
+🔄 Fluxo de Autenticação e Dados
+Usuário acessa frontend React.
+
+Clica para logar com GitHub → frontend inicia redirecionamento para o GitHub (usando VITE_REACT_APP_GITHUB_CLIENT_ID e VITE_REACT_APP_GITHUB_REDIRECT_URI).
+
+Após autenticação, GitHub redireciona para VITE_REACT_APP_GITHUB_REDIRECT_URI, enviando um code.
+
+Frontend envia o code para backend externo (URL definida em VITE_REACT_APP_BACKEND_API_URL).
+
+Backend processa OAuth, troca code por token, gera JWT e define cookie HttpOnly.
+
+Backend fornece endpoints REST consumidos pelo frontend para montar o dashboard com dados reais.
+
+✅ Convenções
+Código organizado por feature/pasta.
+
+Commits claros e descritivos.
+
+Sempre rodar localmente antes de abrir PR.
+
+🤝 Contribuições
+Pull requests são bem-vindos! 💜
+
+Para contribuir, crie uma branch com seu nome, seguindo o formato:
+feat/seu-nome
+
+Exemplo: feat/maria-silva, feat/joao-dev.
+
+🛡️ Licença
+Licença ISC — Em breve adicionada ao repositório.
+
+📣 Contato
+Dúvidas ou sugestões? Abra uma Issue ou envie um Pull Request.
+
+🌟 Projeto oficial do EstudaMais Tech (https://github.com/estudamais-tech)
