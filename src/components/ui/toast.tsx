@@ -3,7 +3,7 @@ import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils" // Certifique-se de que este caminho está correto
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -14,7 +14,8 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
+      // Classes ajustadas para posicionar no topo direito em todas as telas
+      "fixed top-0 right-0 z-[100] flex max-h-screen w-full flex-col p-4 md:max-w-[420px]",
       className
     )}
     {...props}
@@ -27,9 +28,14 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border bg-background text-foreground",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
+        // Variante padrão: fundo cinza muito claro, borda sutil, texto cinza escuro
+        default: "border border-gray-200 bg-gray-50 text-gray-700", 
+        // Variante destrutiva: fundo vermelho, texto branco
+        destructive: 
+          "destructive group border-red-500 bg-red-500 text-white", 
+        // Variante de sucesso: fundo verde, texto branco
+        success: 
+          "group border-green-500 bg-green-500 text-white",
       },
     },
     defaultVariants: {
@@ -111,7 +117,6 @@ const ToastDescription = React.forwardRef<
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
-
 type ToastActionElement = React.ReactElement<typeof ToastAction>
 
 export {

@@ -101,3 +101,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+:root {
+  --primary-color: #00A895;
+  --bg-color:#143b32;
+  --secondary-color: #FDFDFD;     
+  --accent-color: #F9F9F9;
+  --text-color: #333; 
+  --border-color: #E0E0E0;
+  --hover-color: #E0F7FA;
+  --error-color: #FF5252; 
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --info-color: #2196F3;
+  --background-color: #F5F5F5;
+  --shadow-color: #000000;
+}
+
+a {
+
+  text-decoration: none;
+  overflow: hidden;
+}
+
+li {
+  list-style-type: none;
+  overflow: hidden;
+}
+
+:root {
+  --scrollbar-thumb-gradient-light: linear-gradient(90deg, #a0aec0, #cbd5e0, #a0aec0); 
+  --scrollbar-thumb-gradient-dark: linear-gradient(90deg, #143b32, #397c7b, #143b32); 
+}
+
+.dark {
+  --scrollbar-thumb-gradient: var(--scrollbar-thumb-gradient-dark);
+}
+
+:not(.dark) {
+  --scrollbar-thumb-gradient: var(--scrollbar-thumb-gradient-light);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-image: var(--scrollbar-thumb-gradient); 
+  border-radius: 3px;
+  transition: 0.5s ease-in-out;
+}

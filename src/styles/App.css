@@ -1,4 +1,4 @@
-#root {
+/* #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
@@ -39,4 +39,19 @@
 
 .read-the-docs {
   color: #888;
+} */
+:root {
+  --primary-color: #00A895;
+  --bg-color:#081814;
+  --secondary-color: #FDFDFD;     
+  --accent-color: #F9F9F9;
+  --text-color: #333; 
+  --border-color: #E0E0E0;
+  --hover-color: #E0F7FA;
+  --error-color: #FF5252; 
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --info-color: #2196F3;
+  --background-color: #F5F5F5;
+  --shadow-color: rgba(0, 0, 0, 0.1);
 }
