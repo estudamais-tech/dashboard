@@ -36,20 +36,20 @@
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* REMOVA OU COMENTE ESSA LINHA SE ELA ESTIVER DUPLICADA E CAUSANDO PROBLEMAS:
+    --sidebar-background: 0 0% 98%; */
+
+    /* DEFINIÇÕES CORRETAS PARA O BACKGROUND DA SIDEBAR COM OPACIDADE */
+    --sidebar-base-color-rgb: 255 255 255; /* RGB para branco */
+    --sidebar-blur-opacity: 0.5; /* Opacidade padrão: 50%. Ajuste conforme necessário (0.3 a 0.7 são bons) */
+    --sidebar-background-with-opacity: rgba(var(--sidebar-base-color-rgb), var(--sidebar-blur-opacity));
 
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -81,7 +81,14 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
+    /* REMOVA OU COMENTE ESSA LINHA SE ELA ESTIVER DUPLICADA E CAUSANDO PROBLEMAS:
+    --sidebar-background: 240 5.9% 10%; */
+
+    /* DEFINIÇÕES CORRETAS PARA O BACKGROUND DA SIDEBAR COM OPACIDADE NO DARK MODE */
+    --sidebar-base-color-rgb: 31 41 55; /* RGB para gray-800 */
+    --sidebar-blur-opacity: 0.5; /* Opacidade padrão: 50% */
+    --sidebar-background-with-opacity: rgba(var(--sidebar-base-color-rgb), var(--sidebar-blur-opacity));
+
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -100,4 +107,57 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ESTE BLOCO ESTÁ CAUSANDO O PROBLEMA DE SOBRESCRITA. REMOVA-O OU MANTENHA APENAS O QUE É NECESSÁRIO E NÃO CONFLITE.
+   É uma boa prática centralizar a definição das variáveis de cor no @layer base :root e .dark.
+:root {
+  --sidebar-background: transparent; // ESTA LINHA ESTÁ SOBRESCRVENDO O BACKGROUND COM OPACIDADE!
+  --primary-color: #00A895;
+  --bg-color:#143b32;
+  --secondary-color: #FDFDFD;
+  --accent-color: #F9F9F9;
+  --text-color: #333;
+  --border-color: #E0E0E0;
+  --hover-color: #E0F7FA;
+  --error-color: #FF5252;
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --info-color: #2196F3;
+  --background-color: #F5F5F5;
+  --shadow-color: #000000;
+}
+*/
+
+a {
+  text-decoration: none;
+  overflow: hidden;
+}
+
+li {
+  list-style-type: none;
+  overflow: hidden;
+}
+
+:root {
+  --scrollbar-thumb-gradient-light: linear-gradient(90deg, #a0aec0, #cbd5e0, #a0aec0);
+  --scrollbar-thumb-gradient-dark: linear-gradient(90deg, #143b32, #397c7b, #143b32);
+}
+
+.dark {
+  --scrollbar-thumb-gradient: var(--scrollbar-thumb-gradient-dark);
+}
+
+:not(.dark) {
+  --scrollbar-thumb-gradient: var(--scrollbar-thumb-gradient-light);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-image: var(--scrollbar-thumb-gradient);
+  border-radius: 3px;
+  transition: 0.5s ease-in-out;
 }
