@@ -1,3 +1,6 @@
+[![CI Dashboard](https://github.com/estudamais-tech/dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/estudamais-tech/dashboard/actions/workflows/ci.yml)
+
+
 # EstudaMais.tech – Setup e Arquitetura Inicial
 
 ## Objetivo
