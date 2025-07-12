@@ -1,40 +1,63 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast"; // ADICIONADO: Import do hook useToast
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useToast } from "@/hooks/use-toast";
 
-const AuthContext = createContext(null);
+// 1. Definir a interface para o que o seu contexto de autenticação irá fornecer
+interface AuthContextType {
+  isAuthenticated: boolean;
+  userName: string | null;
+  userAvatar: string | null;
+  githubLogin: string | null;
+  userEmail: string | null; // NOVO: Adicionado userEmail à interface
+  isLoadingAuth: boolean;
+  login: (userData: any) => Promise<void>; // Ajuste 'any' para o tipo real dos dados do usuário se souber
+  logout: () => Promise<void>;
+  setIsLoadingAuth: React.Dispatch<React.SetStateAction<boolean>>;
+  checkAuthStatus: () => Promise<void>;
+  // Adicione outras propriedades e funções do seu contexto aqui
+}
 
-export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState(null);
-  const [userAvatar, setUserAvatar] = useState(null);
-  const [githubLogin, setGithubLogin] = useState(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+// 2. Crie o contexto com a interface definida e um valor padrão adequado
+// Agora exportamos o AuthContext para que outros arquivos possam importá-lo
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [githubLogin, setGithubLogin] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null); // NOVO: Estado para userEmail
+  const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
   const navigate = useNavigate();
-  const { toast } = useToast(); // ADICIONADO: Inicialização do hook de toast
+  const { toast } = useToast();
+  const location = useLocation();
 
-  // Função para limpar o estado local e redirecionar
   const clearAuthState = useCallback(() => {
     setIsAuthenticated(false);
     setUserName(null);
     setUserAvatar(null);
     setGithubLogin(null);
+    setUserEmail(null); // NOVO: Limpar userEmail
     localStorage.removeItem('userName');
     localStorage.removeItem('userAvatar');
     localStorage.removeItem('githubLogin');
+    localStorage.removeItem('userEmail'); // NOVO: Remover userEmail do localStorage
     console.log('AuthContext: Estado local e localStorage limpos.');
   }, []);
 
-  // Função interna para verificar o status de autenticação no backend
   const checkAuthStatus = useCallback(async () => {
-    setIsLoadingAuth(true); 
+    setIsLoadingAuth(true);
     console.log('AuthContext: Verificando status de autenticação no backend...');
-    console.log('AuthContext: Cookies visíveis no frontend (não HttpOnly):', document.cookie); // Para depuração
+    console.log('AuthContext: Cookies visíveis no frontend (não HttpOnly):', document.cookie);
 
     try {
       const response = await fetch('http://localhost:3001/api/check-auth', {
         method: 'GET',
-        credentials: 'include', 
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -44,11 +67,27 @@ export const AuthProvider = ({ children }) => {
           setUserName(data.user.name);
           setUserAvatar(data.user.avatar_url);
           setGithubLogin(data.user.github_login);
+          setUserEmail(data.user.email); // NOVO: Definir userEmail
           setIsAuthenticated(true);
-          // Atualiza localStorage com dados do backend para garantir consistência
+
           localStorage.setItem('userName', data.user.name);
           localStorage.setItem('userAvatar', data.user.avatar_url);
           localStorage.setItem('githubLogin', data.user.github_login);
+          localStorage.setItem('userEmail', data.user.email); // NOVO: Salvar userEmail no localStorage
+
+          console.log('AuthContext: Received onboarding_complete from backend:', data.user.onboarding_complete);
+
+          if (data.user.onboarding_complete) {
+            console.log('AuthContext: Onboarding completo, redirecionando para /dashboard/');
+            if (!location.pathname.startsWith('/dashboard/') && !location.pathname.startsWith('/dashboard')) {
+              navigate('/dashboard/');
+            }
+          } else {
+            console.log('AuthContext: Onboarding pendente, redirecionando para /onboarding');
+            if (location.pathname !== '/onboarding' && location.pathname !== '/') {
+              navigate('/onboarding');
+            }
+          }
         } else {
           console.log('AuthContext: Backend informou que não há autenticação.');
           clearAuthState();
@@ -67,49 +106,52 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       console.log('AuthContext: checkAuthStatus finalizado. isLoadingAuth = false.');
     }
-  }, [clearAuthState]);
+  }, [clearAuthState, navigate, location.pathname]);
 
-  // Função de login: Agora aceita os dados do usuário diretamente.
-  const login = useCallback(async (userData) => { // Tornar assíncrona para await checkAuthStatus
+  const login = useCallback(async (userData: any) => { // Ajuste 'any' para o tipo real dos dados do usuário
     console.log('AuthContext: Função login chamada com dados:', userData);
     if (userData && userData.name && userData.avatar_url && userData.github_login) {
       setUserName(userData.name);
       setUserAvatar(userData.avatar_url);
       setGithubLogin(userData.github_login);
+      setUserEmail(userData.email); // NOVO: Definir userEmail no login
       setIsAuthenticated(true);
-      
-      // Salvar no localStorage imediatamente
+
       localStorage.setItem('userName', userData.name);
       localStorage.setItem('userAvatar', userData.avatar_url);
       localStorage.setItem('githubLogin', userData.github_login);
+      localStorage.setItem('userEmail', userData.email); // NOVO: Salvar userEmail no localStorage no login
       console.log('AuthContext: Dados salvos no localStorage. Verificando cookie...');
 
-      // Pequeno atraso para dar tempo ao navegador de processar o Set-Cookie
-      await new Promise(resolve => setTimeout(resolve, 100)); 
-      await checkAuthStatus(); // Força uma nova verificação do cookie
-      
-      // ADICIONADO: Toast de sucesso no login
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await checkAuthStatus();
+
       toast({
         title: "Login bem-sucedido!",
         description: `Bem-vindo(a), ${userData.name}.`,
-          variant: "success", 
+        variant: "success",
       });
+
+      if (userData.onboarding_complete) {
+        console.log('AuthContext: Onboarding completo após login, redirecionando para /onboarding');
+        navigate('/dashboard/');
+      } else {
+        console.log('AuthContext: Onboarding pendente após login, redirecionando para /onboarding');
+        navigate('/onboarding');
+      }
 
     } else {
       console.error('AuthContext: Tentativa de login com dados de usuário inválidos.', userData);
       clearAuthState();
-      // ADICIONADO: Toast de falha no login
       toast({
         title: "Falha no Login",
         description: "Não foi possível autenticar. Dados inválidos.",
         variant: "destructive",
       });
     }
-    // setIsLoadingAuth(false); // Movido para finally de checkAuthStatus
-  }, [clearAuthState, checkAuthStatus, toast]); // ADICIONADO 'toast' às dependências
+  }, [clearAuthState, checkAuthStatus, navigate, toast]);
 
-  // Função de logout: faz requisição ao backend e limpa estado local
-  const logout = useCallback(async () => { // Transformado em useCallback
+  const logout = useCallback(async () => {
     console.log('AuthContext: Iniciando logout. Notificando backend para limpar cookie.');
     try {
       const response = await fetch('http://localhost:3001/api/logout', {
@@ -117,20 +159,18 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', 
+        credentials: 'include',
       });
 
       if (response.ok) {
         console.log('AuthContext: Logout bem-sucedido no backend (cookie limpo).');
-        // ADICIONADO: Toast de sucesso no logout
         toast({
           title: "Logout realizado",
           description: "Você foi desconectado(a).",
-          variant: "success", 
+          variant: "success",
         });
       } else {
         console.error('AuthContext: Erro ao fazer logout no backend:', response.status, response.statusText);
-        // ADICIONADO: Toast de erro no logout via backend
         toast({
           title: "Erro ao fazer logout",
           description: "Não foi possível desconectar completamente.",
@@ -139,31 +179,39 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('AuthContext: Erro de rede durante o logout:', error);
-      // ADICIONADO: Toast de erro de rede no logout
       toast({
         title: "Erro de Conexão",
         description: "Não foi possível conectar ao servidor para logout.",
         variant: "destructive",
       });
     } finally {
-      clearAuthState(); 
+      clearAuthState();
       console.log('AuthContext: Dados locais limpos. Estado de autenticação redefinido.');
-      navigate('/'); 
+      navigate('/');
     }
-  }, [clearAuthState, navigate, toast]); // ADICIONADO 'toast' às dependências
+  }, [clearAuthState, navigate, toast]);
 
-  // Efeito para verificar o estado de autenticação na montagem inicial do AuthProvider
   useEffect(() => {
     console.log('AuthContext: Executando useEffect inicial para checkAuthStatus.');
     checkAuthStatus();
-  }, [checkAuthStatus]); 
+  }, [checkAuthStatus]);
+
+  const contextValue: AuthContextType = { // Garante que o valor do contexto corresponda à interface
+    isAuthenticated,
+    userName,
+    userAvatar,
+    githubLogin,
+    userEmail, // NOVO: Incluir userEmail no valor do contexto
+    isLoadingAuth,
+    login,
+    logout,
+    setIsLoadingAuth,
+    checkAuthStatus,
+  };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, userName, userAvatar, githubLogin, isLoadingAuth, login, logout, setIsLoadingAuth }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);
-// correto

@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext'; 
+// AJUSTE: Corrigido o caminho do import para o hook useAuth
+import { useAuth } from '../hooks/useAuth'; // Importa o hook useAuth
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Users, 
-  Github, 
-  DollarSign, 
+import {
+  Users,
+  Github,
+  DollarSign,
   TrendingUp,
   Clock,
   Gift,
@@ -17,54 +18,63 @@ import {
   Star
 } from "lucide-react";
 
-import { exchangeCodeForToken } from '../services/githubAuthService'; 
+import githubAuthService from '../services/githubAuthService';
+import userService from '../services/userService'; 
+
 
 export default function Dashboard() {
-  const { isAuthenticated, setIsLoadingAuth, login, logout } = useAuth(); 
+  const { isAuthenticated, setIsLoadingAuth, login, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const authProcessed = useRef(false); 
+  const authProcessed = useRef(false);
+
+  // NOVO ESTADO: Para armazenar a quantidade total de alunos ativos
+  const [totalStudentsCount, setTotalStudentsCount] = useState<number | string>('...');
+  const [loadingTotalStudents, setLoadingTotalStudents] = useState<boolean>(true);
+  const [errorTotalStudents, setErrorTotalStudents] = useState<string | null>(null);
+
+  // NOVO ESTADO: Para armazenar a quantidade de alunos com GitHub Student Pack ativado
+  const [githubStudentsCount, setGithubStudentsCount] = useState<number | string>('...');
+  const [loadingGithubStudents, setLoadingGithubStudents] = useState<boolean>(true);
+  const [errorGithubStudents, setErrorGithubStudents] = useState<string | null>(null);
+
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
-    // REMOVIDO: const storedToken = localStorage.getItem('userToken'); // Não é mais relevante aqui
 
     console.log('Dashboard useEffect (Callback): Início.');
-    console.log('   - Código na URL:', code);
-    console.log('   - authProcessed.current:', authProcessed.current);
-    console.log('   - isAuthenticated do Context (Dashboard):', isAuthenticated);
+    console.log('    - Código na URL:', code);
+    console.log('    - authProcessed.current:', authProcessed.current);
+    console.log('    - isAuthenticated do Context (Dashboard):', isAuthenticated);
 
-
-    // Se há um código na URL E este código ainda não foi processado
-    // E o usuário NÃO está autenticado (para evitar re-autenticar se já logou e recarregou)
     if (code && !authProcessed.current && !isAuthenticated) {
-      setIsLoadingAuth(true); 
-      authProcessed.current = true; 
+      setIsLoadingAuth(true);
+      authProcessed.current = true;
       console.log('Dashboard useEffect (Callback): Processando novo código de autorização do GitHub via backend.');
 
       const processGitHubCode = async () => {
         try {
-          const backendResponse = await exchangeCodeForToken(code);
-          console.log('Dashboard: Resposta COMPLETA do backend em exchangeCodeForToken:', backendResponse); // NOVO LOG AQUI
+          const backendResponse = await githubAuthService.exchangeCodeForToken(code);
+
+          console.log('Dashboard: Resposta COMPLETA do backend em exchangeCodeForToken:', backendResponse);
 
           if (backendResponse && backendResponse.user) {
-            login(backendResponse.user); 
+            login(backendResponse.user);
             console.log('Dashboard: Dados do usuário passados para a função login do AuthContext.');
           } else {
             console.error('Dashboard: Resposta do backend não contém dados de usuário válidos.', backendResponse);
             throw new Error('Dados de usuário inválidos recebidos do backend.');
           }
-          
+
           navigate(location.pathname, { replace: true });
           console.log('Dashboard: URL limpa e redirecionamento para o mesmo path concluído.');
 
         } catch (error) {
           console.error('Dashboard: Erro ao processar o código do GitHub:', error);
-          // Substituído alert por um console.error ou um modal customizado, conforme as instruções
           console.error('Falha na autenticação com o GitHub.');
-          logout(); 
-          navigate('/', { replace: true }); 
+          logout();
+          navigate('/', { replace: true });
         } finally {
           setIsLoadingAuth(false);
           console.log('Dashboard: Finalizada. isLoadingAuth = false.');
@@ -72,7 +82,7 @@ export default function Dashboard() {
       };
 
       processGitHubCode();
-    } else if (code && isAuthenticated) { // Se há um código na URL, mas o usuário JÁ ESTÁ autenticado
+    } else if (code && isAuthenticated) {
       if (location.search.includes('code=')) {
         console.log('Dashboard useEffect (Callback): Código na URL, mas já autenticado. Limpando URL.');
         navigate(location.pathname, { replace: true });
@@ -81,7 +91,51 @@ export default function Dashboard() {
       console.log('Dashboard useEffect (Callback): Nenhuma ação de autenticação necessária neste ciclo.');
     }
 
-  }, [location.search, navigate, location.pathname, isAuthenticated, setIsLoadingAuth, login, logout]); 
+  }, [location.search, navigate, location.pathname, isAuthenticated, setIsLoadingAuth, login, logout]);
+
+
+  // NOVO useEffect para buscar a contagem TOTAL de usuários ativos
+  useEffect(() => {
+    const fetchTotalStudents = async () => {
+      try {
+        setLoadingTotalStudents(true);
+        setErrorTotalStudents(null);
+        // Supondo que getTotalUsersCount() retorna a contagem total
+        const count = await userService.getTotalUsersCount();
+        setTotalStudentsCount(count);
+      } catch (err: any) {
+        console.error('Erro ao buscar a quantidade TOTAL de estudantes ativos:', err);
+        setErrorTotalStudents('N/A');
+        setTotalStudentsCount('N/A');
+      } finally {
+        setLoadingTotalStudents(false);
+      }
+    };
+
+    fetchTotalStudents();
+  }, []); // Executa apenas uma vez ao montar o componente
+
+
+  // NOVO useEffect para buscar a contagem de usuários COM GITHUB
+  useEffect(() => {
+    const fetchGithubStudents = async () => {
+      try {
+        setLoadingGithubStudents(true);
+        setErrorGithubStudents(null);
+        // Supondo que getGithubUsersCount() retorna a contagem de usuários com GitHub
+        const count = await userService.getGithubUsersCount(); // Nova função a ser criada/implementada no userService
+        setGithubStudentsCount(count);
+      } catch (err: any) {
+        console.error('Erro ao buscar a quantidade de estudantes com GitHub:', err);
+        setErrorGithubStudents('N/A');
+        setGithubStudentsCount('N/A');
+      } finally {
+        setLoadingGithubStudents(false);
+      }
+    };
+
+    fetchGithubStudents();
+  }, []); // Executa apenas uma vez ao montar o componente
 
   return (
     <div className="space-y-6 p-6 mt-20">
@@ -94,26 +148,27 @@ export default function Dashboard() {
 
       {/* Métricas principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* MetricCard precisa ser atualizado para suportar dark mode internamente ou você pode passar props */}
+        {/* MetricCard para Estudantes Ativos (Total) */}
         <MetricCard
           title="Estudantes Ativos"
-          value="1,247"
+          value={loadingTotalStudents ? 'Carregando...' : errorTotalStudents ? errorTotalStudents : totalStudentsCount.toLocaleString('pt-BR')}
           change="+18.5%"
           icon={Users}
           trend="up"
-          className="dark:bg-gray-800 dark:text-white dark:border-gray-700" // Exemplo de como aplicar ao MetricCard
+          className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
         />
         <MetricCard
           title="Investimento Total Liberado"
-          value="US$ 892,340"
+          value="US$ 892,340" // Mantido mockado conforme sua solicitação anterior
           change="+22.3%"
           icon={DollarSign}
           trend="up"
           className="dark:bg-gray-800 dark:text-white dark:border-gray-700"
         />
+        {/* MetricCard para GitHub Student Packs Ativados (Com GitHub) */}
         <MetricCard
           title="GitHub Student Packs Ativados"
-          value="634"
+          value={loadingGithubStudents ? 'Carregando...' : errorGithubStudents ? errorGithubStudents : githubStudentsCount.toLocaleString('pt-BR')}
           change="+15.2%"
           icon={Github}
           trend="up"
@@ -121,7 +176,7 @@ export default function Dashboard() {
         />
         <MetricCard
           title="Taxa de Conclusão da Jornada"
-          value="71.2%"
+          value="71.2%" // Mantido mockado
           change="+4.1%"
           icon={Trophy}
           trend="up"
@@ -148,7 +203,7 @@ export default function Dashboard() {
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600">US$ 2,156.24</div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">Já Investido (Média)</p>
-                <Progress value={65} className="mt-2" /> {/* Progress component might need dark mode styles */}
+                <Progress value={65} className="mt-2" />
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-600">US$ 1,156.92</div>
@@ -269,25 +324,25 @@ export default function Dashboard() {
             <div className="text-center p-4 border rounded-lg dark:border-gray-600">
               <div className="text-2xl font-bold text-blue-600">Etapa 1</div>
               <p className="text-sm font-medium">Conta GitHub</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">892 estudantes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">892 estudantes</p> {/* Este ainda está mockado */}
               <Progress value={71} className="mt-2" />
             </div>
             <div className="text-center p-4 border rounded-lg dark:border-gray-600">
               <div className="text-2xl font-bold text-green-600">Etapa 2</div>
               <p className="text-sm font-medium">Student Pack</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">634 estudantes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">634 estudantes</p> {/* Este ainda está mockado */}
               <Progress value={51} className="mt-2" />
             </div>
             <div className="text-center p-4 border rounded-lg dark:border-gray-600">
               <div className="text-2xl font-bold text-purple-600">Etapa 3</div>
               <p className="text-sm font-medium">Ferramentas Premium</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">456 estudantes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">456 estudantes</p> {/* Este ainda está mockado */}
               <Progress value={37} className="mt-2" />
             </div>
             <div className="text-center p-4 border rounded-lg dark:border-gray-600">
               <div className="text-2xl font-bold text-orange-600">Etapa 4</div>
               <p className="text-sm font-medium">Certificações</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">287 estudantes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">287 estudantes</p> {/* Este ainda está mockado */}
               <Progress value={23} className="mt-2" />
             </div>
           </div>
@@ -296,4 +351,3 @@ export default function Dashboard() {
     </div>
   );
 }
-// correto

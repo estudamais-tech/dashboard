@@ -3,7 +3,8 @@ import { Bell, Search, User, X, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"; 
-import { useAuth } from '../contexts/AuthContext';
+// AJUSTE: Corrigido o caminho do import para o hook useAuth
+import { useAuth } from '../hooks/useAuth'; // Importado para obter dados do usuário logado
 
 export function DashboardHeader() {
   const { userName, userAvatar, userEmail, logout } = useAuth();

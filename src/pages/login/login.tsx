@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+// AJUSTE: Corrigido o caminho do import para o hook useAuth
+import { useAuth } from '../../hooks/useAuth'; // Importa o hook useAuth
 
 export default function Login() {
   const navigate = useNavigate();
@@ -82,13 +83,13 @@ export default function Login() {
         }}
       ></div>
 
-     
+      
       {/* A logo agora está DENTRO da div do cartão, mas posicionada de forma absoluta em relação a ela */}
       <div className="relative bg-white p-10 rounded-lg shadow-lg text-center w-full max-w-md z-10 pt-20"> {/* Adicionado 'relative' e 'pt-20' aqui */}
         <img
           src="/img/icons/logo.png"
           alt="Logo"
-          className='absolute   left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16' // Tamanho w-24 h-24 (96px)
+          className='absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16' // Tamanho w-24 h-24 (96px)
           style={{ top: '0' }} // Posiciona o topo da logo no topo da div pai (o cartão)
         />
         <h1 className="mb-5 text-3xl font-bold text-[var(--bg-color)] dark:text-gray-900">Bem-vindo!</h1>

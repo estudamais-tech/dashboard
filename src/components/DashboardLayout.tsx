@@ -27,7 +27,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             backgroundPosition: '0px 0px',
             backgroundSize: 'auto',
             mixBlendMode: 'overlay',
-            opacity: 0.10,
+            opacity: 0.15,
             
           }}
         ></div>
