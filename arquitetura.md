@@ -51,9 +51,10 @@ Este documento descreve a stack atual, estrutura de execução local e de produ�
   DB_USER=root
   DB_PASSWORD=...
   DB_NAME=estudamais_db
-````
+  ```
 
-* **Rotas**:
+
+**Rotas**:
 
   * `/api/auth/...` → login, logout, callback, check-auth
   * `/api/users/...` → onboarding, contagens, dashboard
