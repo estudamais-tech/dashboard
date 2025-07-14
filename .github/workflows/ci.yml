@@ -1,4 +1,4 @@
-name: CI EstudaMais Frontend
+name: CI Dashboard
 
 on:
   push:
