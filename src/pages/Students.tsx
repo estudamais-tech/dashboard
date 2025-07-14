@@ -11,31 +11,30 @@ import {
     DollarSign,
     Trophy,
     ArrowRight,
-    ExternalLink, // Import ExternalLink for the button
+    ExternalLink,
     Linkedin,
-    Link
+    Link,
+    Trash2 // Adicionado ícone de lixeira
 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-import userService from '../services/userService';
-import trackService from '@/services/trackService';
+
+import userService, { User } from '../services/userService';
+import trackService, { Track } from '@/services/trackService';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 
-// Interface for student data (maintained)
-interface StudentData {
-    id: string;
-    name: string;
-    course: string | null;
-    currentSemester: number | null;
-    totalSemesters: number | null;
-    areasOfInterest: string[];
-    totalSaved: number;
-    totalPossibleBenefits: number;
-    redeemedBenefits: string[];
-}
-
-// Interface for a product/benefit (maintained)
 interface Product {
     id: string;
     name: string;
@@ -46,81 +45,20 @@ interface Product {
     area: string;
 }
 
-// Interface for track data structure (maintained)
-interface Track {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    path: string; // Ensure 'path' is included for navigation
-    rewardValue: number;
-    status: 'available' | 'in-progress' | 'completed';
-}
-
-// Mock products (maintained)
 const MOCK_PRODUCTS: Product[] = [
-    {
-        id: 'github-copilot',
-        name: 'GitHub Copilot',
-        logoUrl: 'https://placehold.co/40x40/000000/FFFFFF?text=GC',
-        description: 'Seu assistente de codificação com IA.',
-        monthlyValueUSD: 10,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'Full Stack',
-    },
-    {
-        id: 'travis-ci',
-        name: 'Travis CI',
-        logoUrl: 'https://placehold.co/40x40/FF4E00/FFFFFF?text=TC',
-        description: 'Integração contínua e entrega contínua para seus projetos.',
-        monthlyValueUSD: 69,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'DevOps',
-    },
-    {
-        id: 'mongodb-atlas',
-        name: 'MongoDB Atlas',
-        logoUrl: 'https://placehold.co/40x40/47A248/FFFFFF?text=MA',
-        description: 'Banco de dados NoSQL na nuvem, escalável e flexível.',
-        monthlyValueUSD: 25,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'Backend',
-    },
-    {
-        id: 'railway',
-        name: 'Railway',
-        logoUrl: 'https://placehold.co/40x40/0B111A/FFFFFF?text=RW',
-        description: 'Plataforma de deploy para suas aplicações.',
-        monthlyValueUSD: 50,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'Backend',
-    },
-    {
-        id: 'netlify',
-        name: 'Netlify',
-        logoUrl: 'https://placehold.co/40x40/00C7B7/FFFFFF?text=NF',
-        description: 'Plataforma para deploy e hospedagem de frontends modernos.',
-        monthlyValueUSD: 19,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'Frontend',
-    },
-    {
-        id: 'digitalocean',
-        name: 'DigitalOcean',
-        logoUrl: 'https://placehold.co/40x40/0080FF/FFFFFF?text=DO',
-        description: 'Créditos para VMs, bancos de dados e mais na nuvem.',
-        monthlyValueUSD: 100,
-        redemptionLink: 'https://education.github.com/pack',
-        area: 'DevOps',
-    },
+  
 ];
+
+interface StudentDashboardData extends User {
+    totalSaved: number;
+    totalPossibleBenefits: number;
+}
 
 export default function Students() {
     const { userName, githubLogin, isAuthenticated, isLoadingAuth } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    // States for general counters (maintained)
     const [totalStudentsCount, setTotalStudentsCount] = useState<number | string>('...');
     const [loadingTotalStudents, setLoadingTotalStudents] = useState<boolean>(true);
     const [errorTotalStudents, setErrorTotalStudents] = useState<string | null>(null);
@@ -129,38 +67,39 @@ export default function Students() {
     const [loadingGithubStudents, setLoadingGithubStudents] = useState<boolean>(true);
     const [errorGithubStudents, setErrorGithubStudents] = useState<string | null>(null);
 
-    const [activeBenefitsCount, setActiveBenefitsCount] = useState<number | string>('...');
-    const [loadingActiveBenefits, setLoadingActiveBenefits] = useState<boolean>(true);
-    const [errorActiveBenefits, setErrorActiveBenefits] = useState<string | null>(null);
+    const [inProgressTracksCount, setInProgressTracksCount] = useState<number | string>('...');
+    const [loadingInProgressTracks, setLoadingInProgressTracks] = useState<boolean>(true);
+    const [errorInProgressTracks, setErrorInProgressTracks] = useState<string | null>(null);
 
-    const [pendingStudentsCount, setPendingStudentsCount] = useState<number | string>('...');
-    const [loadingPendingStudents, setLoadingPendingStudents] = useState<boolean>(true);
-    const [errorPendingStudents, setErrorPendingStudents] = useState<string | null>(null);
-
-    // New states for student dashboard data
-    const [studentData, setStudentData] = useState<StudentData | null>(null);
+    const [studentData, setStudentData] = useState<StudentDashboardData | null>(null);
     const [loadingStudentData, setLoadingStudentData] = useState<boolean>(true);
     const [errorStudentData, setErrorStudentData] = useState<string | null>(null);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
-    // NEW STATES FOR TRACKS
     const [allTracks, setAllTracks] = useState<Track[]>([]);
     const [completedTracks, setCompletedTracks] = useState<Track[]>([]);
     const [loadingTracks, setLoadingTracks] = useState(true);
     const [errorTracks, setErrorTracks] = useState<string | null>(null);
 
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false); // Para botões de benefício
+    const [isRemovingTrack, setIsRemovingTrack] = useState<boolean>(false); // Novo estado para carregamento da remoção
 
-    // Calculation functions (reused from StudentDashboard) - Maintained for other calculations if necessary
+    // Estados para o modal de remover trilha
+    const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+    const [trackToRemoveId, setTrackToRemoveId] = useState<string | null>(null);
+    const [trackToRemoveName, setTrackToRemoveName] = useState<string>('');
+    const [confirmTrackName, setConfirmTrackName] = useState<string>(''); // Para o input de confirmação
+
+
     const calculateRemainingMonths = useCallback((current: number | null, total: number | null) => {
         if (current === null || total === null || isNaN(current) || isNaN(total) || total <= 0 || current > total) {
             return 0;
         }
-        return (total - current) * 6;
+        return (total - current) * 6; // Considerando 6 meses por semestre
     }, []);
 
     const calculateTotalPossibleBenefits = useCallback((areas: string[], remainingMonths: number) => {
-        let total = 0;
+        let total = 200.000;
         areas.forEach(area => {
             const productsInArea = MOCK_PRODUCTS.filter(p => p.area === area);
             total += productsInArea.reduce((sum, product) => sum + (product.monthlyValueUSD * remainingMonths), 0);
@@ -168,7 +107,86 @@ export default function Students() {
         return total;
     }, []);
 
-    // Effect to fetch general counters (maintained)
+    // Função para buscar todos os dados (Student e Tracks)
+    const fetchData = useCallback(async () => {
+        if (isLoadingAuth) {
+            console.log('Students.tsx: Waiting for AuthProvider to finish loading authentication status.');
+            return;
+        }
+
+        if (!isAuthenticated) {
+            console.log('Students.tsx: Not authenticated, redirecting to home.');
+            navigate('/');
+            return;
+        }
+
+        setLoadingStudentData(true);
+        setLoadingTracks(true);
+        setLoadingInProgressTracks(true);
+        setErrorStudentData(null);
+        setErrorTracks(null);
+        setErrorInProgressTracks(null);
+
+
+        let studentDataFetched: User | null = null;
+        let tracksFetched: Track[] = [];
+
+        try {
+            studentDataFetched = await userService.getStudentDashboardData();
+            console.log('Students.tsx (Dashboard): Data received from userService.getStudentDashboardData:', JSON.stringify(studentDataFetched, null, 2));
+
+            const isAreasOfInterestInvalid = !Array.isArray(studentDataFetched.areasOfInterest);
+
+            if (studentDataFetched.onboarding_complete !== 1 || studentDataFetched.course === null || studentDataFetched.currentSemester === null || studentDataFetched.totalSemesters === null || isAreasOfInterestInvalid) {
+                console.log('Students.tsx (Dashboard): Incomplete onboarding data detected, redirecting to /onboarding.');
+                navigate('/onboarding');
+                return;
+            }
+
+            const areasOfInterest = studentDataFetched.areasOfInterest || [];
+
+            setStudentData({
+                ...studentDataFetched,
+                areasOfInterest,
+                redeemedBenefits: studentDataFetched.redeemedBenefits || [],
+                totalSaved: parseFloat(studentDataFetched.totalEconomy) || 0,
+                totalPossibleBenefits: calculateTotalPossibleBenefits(areasOfInterest, calculateRemainingMonths(studentDataFetched.currentSemester, studentDataFetched.totalSemesters))
+            });
+
+            const products = MOCK_PRODUCTS.filter(product =>
+                areasOfInterest.includes(product.area)
+            );
+            setFilteredProducts(products);
+
+            tracksFetched = await trackService.getTracksForUser();
+            console.log('Students.tsx (Dashboard): Tracks received from trackService.getTracksForUser():', JSON.stringify(tracksFetched, null, 2));
+
+            setAllTracks(tracksFetched);
+
+            const completed = tracksFetched.filter(track => track.status === 'completed');
+            setCompletedTracks(completed);
+
+            const inProgress = tracksFetched.filter(track => track.status === 'in-progress');
+            setInProgressTracksCount(inProgress.length);
+
+        } catch (err: any) {
+            console.error("Error fetching student data or tracks:", err);
+            setErrorStudentData(err.message || "Failed to load student data.");
+            setErrorTracks(err.message || "Failed to load tracks.");
+            setErrorInProgressTracks(err.message || "Failed to load in-progress tracks.");
+            setStudentData(null);
+            setAllTracks([]);
+            setCompletedTracks([]);
+            setInProgressTracksCount('N/A');
+        } finally {
+            setLoadingStudentData(false);
+            setLoadingTracks(false);
+            setLoadingInProgressTracks(false);
+        }
+    }, [isAuthenticated, isLoadingAuth, navigate, calculateRemainingMonths, calculateTotalPossibleBenefits]);
+
+
+    // Effect for dashboard counts (independent of studentData)
     useEffect(() => {
         const fetchCounts = async () => {
             try {
@@ -192,103 +210,15 @@ export default function Students() {
             } finally {
                 setLoadingGithubStudents(false);
             }
-
-            try {
-                setLoadingActiveBenefits(true);
-                const count = await userService.getStudentsWithActiveBenefitsCount();
-                setActiveBenefitsCount(count);
-            } catch (err: any) {
-                console.error('Error fetching students with active benefits:', err);
-                setErrorActiveBenefits('N/A');
-            } finally {
-                setLoadingActiveBenefits(false);
-            }
-
-            try {
-                setLoadingPendingStudents(true);
-                const count = await userService.getPendingStudentsCount();
-                setPendingStudentsCount(count);
-            } catch (err: any) {
-                console.error('Error fetching pending students:', err);
-                setErrorPendingStudents('N/A');
-            } finally {
-                setLoadingPendingStudents(false);
-            }
         };
         fetchCounts();
     }, []);
 
-    // New useEffect to fetch logged-in student dashboard data
+
+    // Effect para buscar os dados iniciais quando o componente é montado ou auth muda
     useEffect(() => {
-        const fetchStudentDashboardData = async () => {
-            if (!isAuthenticated || isLoadingAuth) {
-                if (!isLoadingAuth) {
-                    navigate('/');
-                }
-                return;
-            }
-
-            setLoadingStudentData(true);
-            try {
-                const data: StudentData = await userService.getStudentDashboardData();
-                console.log('Students.tsx (Dashboard): Data received from userService.getStudentDashboardData:', JSON.stringify(data, null, 2));
-
-                if (!data.course || String(data.course).trim() === '' || data.currentSemester === null || data.totalSemesters === null || data.areasOfInterest.length === 0) {
-                    console.log('Students.tsx (Dashboard): Incomplete onboarding data, redirecting to /onboarding.');
-                    navigate('/onboarding');
-                    return;
-                }
-
-                const FIXED_HIGH_BENEFITS_VALUE = 200000;
-
-                const updatedData = { ...data, totalPossibleBenefits: FIXED_HIGH_BENEFITS_VALUE };
-                setStudentData(updatedData);
-
-                const products = MOCK_PRODUCTS.filter(product =>
-                    data.areasOfInterest.includes(product.area)
-                );
-                setFilteredProducts(products);
-
-            } catch (err: any) {
-                console.error("Error loading student dashboard data:", err);
-                setErrorStudentData("Could not load your dashboard data.");
-                toast({
-                    title: "Error loading data",
-                    description: "Check your connection or try again.",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoadingStudentData(false);
-            }
-        };
-
-        fetchStudentDashboardData();
-    }, [isAuthenticated, isLoadingAuth, calculateRemainingMonths, calculateTotalPossibleBenefits, toast, navigate]);
-
-
-    // NEW useEffect to fetch TRACKS (maintained)
-    useEffect(() => {
-        const fetchTracks = async () => {
-            if (!isLoadingAuth && isAuthenticated) {
-                try {
-                    setLoadingTracks(true);
-                    const data = await trackService.getTracksForUser();
-                    setAllTracks(data);
-                    setCompletedTracks(data.filter(track => track.status === 'completed'));
-                } catch (e: any) {
-                    setErrorTracks(e.message);
-                    console.error("Failed to fetch tracks for dashboard:", e);
-                } finally {
-                    setLoadingTracks(false);
-                }
-            } else if (!isLoadingAuth && !isAuthenticated) {
-                setLoadingTracks(false);
-                setErrorTracks("User not authenticated. Could not load tracks.");
-            }
-        };
-
-        fetchTracks();
-    }, [isAuthenticated, isLoadingAuth]);
+        fetchData();
+    }, [fetchData]);
 
 
     const handleRedeemBenefit = async (productId: string, redemptionLink: string) => {
@@ -311,19 +241,12 @@ export default function Students() {
 
             await userService.updateBenefitStatus(productId, true, redeemedProduct.monthlyValueUSD, monthsRemaining);
 
-            setStudentData(prev => {
-                if (!prev) return null;
-                const newTotalSaved = prev.totalSaved + (redeemedProduct.monthlyValueUSD * monthsRemaining);
+            // Re-fetch data to ensure all counts and lists are accurate
+            await fetchData();
 
-                return {
-                    ...prev,
-                    redeemedBenefits: [...prev.redeemedBenefits, productId],
-                    totalSaved: newTotalSaved,
-                };
-            });
             toast({
-                title: "Benefit Redeemed!",
-                description: "Benefit status updated successfully.",
+                title: "Benefício Resgatado!",
+                description: "O status do benefício foi atualizado com sucesso.",
                 variant: "success",
             });
 
@@ -332,8 +255,8 @@ export default function Students() {
         } catch (error: any) {
             console.error("Error redeeming benefit:", error);
             toast({
-                title: "Error Redeeming",
-                description: `Failed to update benefit: ${error.message || 'Unknown error'}`,
+                title: "Erro ao Resgatar",
+                description: `Falha ao atualizar benefício: ${error.message || 'Unknown error'}`,
                 variant: "destructive",
             });
         } finally {
@@ -341,7 +264,49 @@ export default function Students() {
         }
     };
 
-    // Function to render track icons (maintained)
+    // Função para abrir o modal de remoção
+    const openRemoveModal = (trackId: string, trackName: string) => {
+        setTrackToRemoveId(trackId);
+        setTrackToRemoveName(trackName);
+        setConfirmTrackName(''); // Limpa o input de confirmação
+        setIsRemoveModalOpen(true);
+    };
+
+    // Função para remover a trilha
+    const handleRemoveTrack = async () => {
+        if (!trackToRemoveId || confirmTrackName !== trackToRemoveName) {
+            toast({
+                title: "Erro de Confirmação",
+                description: "Por favor, digite o nome da trilha exatamente como mostrado para confirmar a remoção.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsRemovingTrack(true);
+        try {
+            await trackService.removeTrackProgress(trackToRemoveId);
+            toast({
+                title: "Sucesso",
+                description: "Progresso da trilha removido com sucesso!",
+                variant: "success",
+            });
+            setIsRemoveModalOpen(false); // Fecha o modal
+            await fetchData(); // Re-fetch all data to update UI
+
+        } catch (error: any) {
+            console.error("Error removing track:", error);
+            toast({
+                title: "Erro ao Remover Trilha",
+                description: `Falha ao remover progresso da trilha: ${error.message || 'Unknown error'}`,
+                variant: "destructive",
+            });
+        } finally {
+            setIsRemovingTrack(false);
+        }
+    };
+
+
     const renderTrackIcon = (iconName: string) => {
         switch (iconName) {
             case 'github':
@@ -350,7 +315,6 @@ export default function Students() {
                 return <Linkedin className="w-5 h-5 text-blue-600 dark:text-blue-300" />;
             case 'arrow-right':
                 return <ArrowRight className="w-5 h-5 text-green-600 dark:text-green-300" />;
-            // Add 'ExternalLink' for consistency if you use it directly as an icon name.
             case 'external-link':
                 return <ExternalLink className="w-5 h-5 text-gray-600 dark:text-gray-300" />;
             default:
@@ -358,8 +322,7 @@ export default function Students() {
         }
     };
 
-    // Conditional rendering for loading and errors (maintained)
-    if (loadingStudentData || loadingTracks) {
+    if (isLoadingAuth || loadingStudentData || loadingTracks || loadingInProgressTracks) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                 <p className="text-xl text-gray-700 dark:text-gray-300">Carregando sua dashboard e trilhas...</p>
@@ -367,11 +330,16 @@ export default function Students() {
         );
     }
 
-    if (errorStudentData || errorTracks) {
+    if (!isAuthenticated) {
+        navigate('/');
+        return null;
+    }
+
+    if (errorStudentData || errorTracks || errorInProgressTracks) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
                 <p className="text-xl text-red-500">
-                    Erro ao carregar dados: {errorStudentData || errorTracks}
+                    Erro ao carregar dados: {errorStudentData || errorTracks || errorInProgressTracks}
                 </p>
             </div>
         );
@@ -385,41 +353,39 @@ export default function Students() {
         );
     }
 
-    // Calculation of benefits saving progress (maintained)
+    // AQUI É O LUGAR CORRETO PARA DECLARAR displayedName
+    const displayedName = userName || githubLogin || 'Estudante';
+
     const benefitsProgressPercentage = studentData.totalPossibleBenefits > 0
         ? (studentData.totalSaved / studentData.totalPossibleBenefits) * 100
         : 0;
 
-    // Calculation of track progress (maintained)
     const totalTracksCount = allTracks.length;
     const completedTracksCount = completedTracks.length;
     const trackProgressPercentage = totalTracksCount > 0
         ? (completedTracksCount / totalTracksCount) * 100
         : 0;
 
-
     return (
         <div className="space-y-6 p-6 mt-14 max-w-6xl mx-auto">
-            {/* Dashboard Header (maintained) */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">
-                        Olá, {userName || 'Estudante'}!
+                        Olá, {displayedName}!
                     </h1>
                     <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
                         Bem-vindo(a) à sua dashboard Estudamais.tech.
                     </p>
                     <p className="text-md text-gray-500 dark:text-gray-400">
-                        Curso: <span className="font-semibold">{studentData.course || 'N/A'}</span> | Semestre: <span className="font-semibold">{studentData.currentSemester || 'N/A'}/{studentData.totalSemesters || 'N/A'}</span> | Área(s): <span className="font-semibold">{studentData.areasOfInterest.join(', ') || 'N/A'}</span>
+                        Curso: <span className="font-semibold">{studentData.course || 'N/A'}</span> | Semestre: <span className="font-semibold">{studentData.currentSemester || 'N/A'}/{studentData.totalSemesters || 'N/A'}</span> | Área(s): <span className="font-semibold">{(studentData.areasOfInterest || []).join(', ')}</span> {/* <-- AQUI ESTÁ A MUDANÇA: Removido o `|| 'N/A'` */}
                     </p>
                 </div>
-                <div className="flex items-center gap-3 bg-gray-200 dark:bg-gray-700 p-3 rounded-full">
+                <div className="flex items-center gap-3 bg-gray-200 dark:bg-gray-700 p-3 rounded-full shadow-lg">
                     <Github className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                     <span className="text-gray-800 dark:text-gray-200 font-medium">@{githubLogin || 'N/A'}</span>
                 </div>
             </div>
 
-            {/* General counter cards (maintained) */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700">
                     <CardContent className="p-4">
@@ -455,7 +421,7 @@ export default function Students() {
                             <div>
                                 <p className="text-sm text-gray-400">Benefícios Ativos</p>
                                 <p className="text-2xl font-bold">
-                                    {loadingActiveBenefits ? '...' : errorActiveBenefits ? errorActiveBenefits : activeBenefitsCount.toLocaleString('pt-BR')}
+                                    {completedTracksCount.toLocaleString('pt-BR')}
                                 </p>
                             </div>
                             <CheckCircle className="w-8 h-8 text-purple-500" />
@@ -467,9 +433,9 @@ export default function Students() {
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-400">Pendentes</p>
+                                <p className="text-sm text-gray-400">Trilhas em Andamento</p>
                                 <p className="text-2xl font-bold">
-                                    {loadingPendingStudents ? '...' : errorPendingStudents ? errorPendingStudents : pendingStudentsCount.toLocaleString('pt-BR')}
+                                    {loadingInProgressTracks ? '...' : errorInProgressTracks ? errorInProgressTracks : inProgressTracksCount.toLocaleString('pt-BR')}
                                 </p>
                             </div>
                             <Clock className="w-8 h-8 text-orange-500" />
@@ -478,7 +444,6 @@ export default function Students() {
                 </Card>
             </div>
 
-            {/* TRACK JOURNEY PROGRESS SECTION (maintained) */}
             <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 rounded-lg shadow-md">
                 <CardContent className="p-6 text-start">
                     <CardTitle className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
@@ -494,14 +459,13 @@ export default function Students() {
                 </CardContent>
             </Card>
 
-            {/* Savings and Benefits Section - Gauge Meter (maintained) */}
             <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 rounded-lg shadow-md">
                 <CardContent className="p-6 text-start">
                     <CardTitle className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
                         <DollarSign className="w-6 h-6 text-green-500" /> Sua Economia de Benefícios
                     </CardTitle>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                        Você já desbloqueou: <span className="font-extrabold text-green-500">${studentData.totalSaved.toLocaleString('en-US')}</span> de <span className="font-extrabold text-blue-500">${studentData.totalPossibleBenefits.toLocaleString('en-US')}</span> disponíveis
+                        Você já desbloqueou: <span className="font-extrabold text-green-500">${(studentData.totalSaved || 0).toLocaleString('en-US')}</span> de <span className="font-extrabold text-blue-500">${(studentData.totalPossibleBenefits || 0).toLocaleString('en-US')}</span> disponíveis
                     </p>
                     <Progress value={benefitsProgressPercentage} className="w-full h-2 bg-gray-300 dark:bg-gray-600 [&::-webkit-progress-bar]:rounded-lg [&::-webkit-progress-value]:rounded-lg [&::-webkit-progress-value]:bg-gradient-to-r [&::-webkit-progress-value]:from-blue-500 [&::-webkit-progress-value]:to-green-500" />
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -510,7 +474,7 @@ export default function Students() {
                 </CardContent>
             </Card>
 
-            {/* NEW SECTION: Completed Tracks */}
+            {/* Seção de Trilhas Concluídas */}
             {completedTracks.length > 0 && (
                 <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 rounded-lg shadow-md ">
                     <CardHeader>
@@ -522,7 +486,7 @@ export default function Students() {
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ">
                         {completedTracks.map((track) => (
                             <Card key={track.id} className="dark:bg-gray-900 dark:border-gray-600 opacity-80">
-                                <CardContent className="p-5 flex flex-col items-start min-h-full justify-between"> {/* ADDED min-h and justify-between */}
+                                <CardContent className="p-5 flex flex-col items-start min-h-full justify-between">
                                     <div className="w-12 h-12 rounded-full mb-3 flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-green-100 dark:bg-green-900">
                                         <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-300" />
                                     </div>
@@ -531,12 +495,20 @@ export default function Students() {
                                         {track.description}
                                     </p>
                                     <Badge variant="default" className="bg-green-500 text-white dark:bg-green-700 mb-4">Concluída</Badge>
-                                    {/* ADDED BUTTON */}
                                     <Button
-                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-700 dark:hover:bg-purple-600"
-                                        onClick={() => navigate(track.path)} // Assuming track.path is the route to the track details
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white dark:bg-purple-700 dark:hover:bg-purple-600 mb-2"
+                                        onClick={() => navigate(track.path)}
                                     >
                                         <ExternalLink className="w-4 h-4 mr-2" /> Ver Trilha
+                                    </Button>
+                                    {/* Botão para Remover Trilha */}
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-red-500 border-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                        onClick={() => openRemoveModal(track.id, track.title)}
+                                        disabled={isRemovingTrack}
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" /> Remover Trilha
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -544,14 +516,13 @@ export default function Students() {
                     </CardContent>
                 </Card>
             )}
-            {/* End of NEW SECTION: Completed Tracks */}
 
-            {/* Product Recommendations Section (maintained) */}
+            {/* Seção de Recomendações de Produtos */}
             <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 rounded-lg shadow-md">
                 <CardHeader>
                     <CardTitle className="text-xl font-bold dark:text-white">Recomendações de Produtos para sua Área</CardTitle>
                     <p className="text-gray-600 dark:text-gray-300">
-                        Baseado em sua(s) área(s) de interesse ({studentData.areasOfInterest.join(', ') || 'N/A'}).
+                        Baseado em sua(s) área(s) de interesse ({(studentData.areasOfInterest || []).join(', ') || 'N/A'}).
                     </p>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -578,7 +549,7 @@ export default function Students() {
                                             </p>
                                         </div>
                                     </div>
-                                    {studentData.redeemedBenefits.includes(product.id) ? (
+                                    {(studentData.redeemedBenefits || []).includes(product.id) ? (
                                         <Button className="w-full bg-green-500 text-white cursor-not-allowed dark:bg-green-600" disabled>
                                             <CheckCircle className="w-4 h-4 mr-2" /> Resgatado
                                         </Button>
@@ -597,6 +568,49 @@ export default function Students() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal de Confirmação de Remoção de Trilha */}
+            <Dialog open={isRemoveModalOpen} onOpenChange={setIsRemoveModalOpen}>
+                <DialogContent className="sm:max-w-[425px] dark:bg-gray-800 dark:text-white">
+                    <DialogHeader>
+                        <DialogTitle className="dark:text-white">Remover Progresso da Trilha</DialogTitle>
+                        <DialogDescription>
+                            Para confirmar a remoção do progresso da trilha, digite o nome completo da trilha abaixo. Esta ação é irreversível e deduzirá a recompensa associada da sua economia total.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {/* ADICIONADO: Margem inferior para espaçar as labels dos inputs */}
+                    <div className="grid gap-4 py-4">
+                        <div className="flex flex-col gap-2"> {/* Alterado para flex-col para colocar Label acima do Input */}
+                            <Label htmlFor="trackName" className="text-left dark:text-gray-300">
+                                Nome da Trilha: <span className="font-semibold text-blue-400">{trackToRemoveName}</span>
+                            </Label>
+                            <Input
+                                id="trackName"
+                                value={confirmTrackName}
+                                onChange={(e) => setConfirmTrackName(e.target.value)}
+                                className="col-span-3 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsRemoveModalOpen(false)}
+                            className="dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                            disabled={isRemovingTrack}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleRemoveTrack}
+                            disabled={isRemovingTrack || confirmTrackName !== trackToRemoveName}
+                        >
+                            {isRemovingTrack ? 'Removendo...' : 'Confirmar Remoção'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

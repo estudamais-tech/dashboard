@@ -1,21 +1,12 @@
-import React, { useState, useEffect, useContext } from 'react';
+// src/pages/Journey.tsx
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, ArrowRight, Github, Linkedin, CheckCircle } from "lucide-react"; // Import CheckCircle icon
+import { Trophy, ArrowRight, Github, Linkedin, CheckCircle, Clock } from "lucide-react"; // Adicionado Clock
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import trackService from '@/services/trackService';
-
-// Define a interface para a estrutura dos dados da trilha
-interface Track {
-    id: string;
-    title: string;
-    description: string;
-    icon: string;
-    path: string;
-    rewardValue: number;
-    status: 'available' | 'in-progress' | 'completed';
-}
+import trackService, { Track } from '@/services/trackService';
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Journey() {
     const navigate = useNavigate();
@@ -25,66 +16,118 @@ export default function Journey() {
     const [error, setError] = useState<string | null>(null);
 
     const { isAuthenticated, isLoadingAuth } = useAuth();
+    const { toast } = useToast();
 
-    // useEffect para buscar as trilhas do backend
     useEffect(() => {
         const fetchTracks = async () => {
             if (!isLoadingAuth && isAuthenticated) {
                 try {
                     setIsLoading(true);
                     const data = await trackService.getTracksForUser();
+                    console.log("Tracks fetched from backend:", data); // Para depuração
 
-                    setAvailableTracks(data.filter(track => track.status === 'available'));
-                    setInProgressTracks(data.filter(track => track.status === 'in-progress'));
+                    // Filtra as trilhas baseadas no status
+                    const available = data.filter(track => track.status === 'available');
+                    const inProgress = data.filter(track => track.status === 'in-progress');
+
+                    setAvailableTracks(available);
+                    setInProgressTracks(inProgress);
                 } catch (e: any) {
                     setError(e.message);
                     console.error("Failed to fetch tracks:", e);
+                    toast({
+                        title: "Erro ao carregar trilhas",
+                        description: e.message || "Não foi possível carregar as trilhas.",
+                        variant: "destructive",
+                    });
                 } finally {
                     setIsLoading(false);
                 }
             } else if (!isLoadingAuth && !isAuthenticated) {
                 setIsLoading(false);
-                setError("Usuário não autenticado. Não foi possível carregar as trilhas.");
+                // Não mostra mais erro persistente na tela, o toast já avisa.
+                // setError("Usuário não autenticado. Não foi possível carregar as trilhas.");
+                toast({
+                    title: "Não autenticado",
+                    description: "Por favor, faça login para ver suas trilhas.",
+                    variant: "default",
+                });
             }
         };
 
         fetchTracks();
-    }, [isAuthenticated, isLoadingAuth]);
+    }, [isAuthenticated, isLoadingAuth, toast]); // Dependências atualizadas
 
     const handleStartTrack = async (track: Track) => {
         try {
-            const rewardValueAsNumber = parseFloat(track.rewardValue.toString());
-            if (isNaN(rewardValueAsNumber)) {
-                throw new Error("Valor de recompensa inválido.");
-            }
-            await trackService.startTrackAndUnlockReward(track.id, rewardValueAsNumber);
+            setIsLoading(true); // Desabilita botões enquanto a requisição está em andamento
+            const rewardValue = typeof track.reward_value === 'number' && !isNaN(track.reward_value)
+                ? track.reward_value
+                : 0;
 
+            await trackService.startTrackAndUnlockReward(track.id, rewardValue);
+
+            // Atualiza os estados locais: move a trilha de 'available' para 'in-progress'
             setAvailableTracks(prev => prev.filter(t => t.id !== track.id));
             setInProgressTracks(prev => [...prev, { ...track, status: 'in-progress' }]);
 
+            toast({
+                title: "Trilha iniciada!",
+                description: `Você começou a trilha "${track.title}". Boa jornada!`,
+                variant: "success",
+            });
+
+            // Navega para a página da trilha APÓS o toast
             navigate(track.path);
 
         } catch (e: any) {
             console.error("Error starting track or unlocking reward:", e);
-            alert(`Erro ao iniciar a trilha: ${e.message}`);
+            toast({
+                title: "Erro ao iniciar trilha",
+                description: `Não foi possível iniciar a trilha: ${e.message}`,
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false); // Reabilita botões
         }
     };
 
-    // --- NOVA FUNÇÃO: Marcar Trilha como Completa ---
     const handleCompleteTrack = async (trackId: string) => {
-        try {
-            await trackService.completeTrack(trackId); // Chama o novo método no service
+        // Encontra a trilha pelo ID para pegar o título para o toast e para remover do estado
+        const completedTrack = inProgressTracks.find(t => t.id === trackId);
+        if (!completedTrack) {
+            toast({
+                title: "Erro",
+                description: "Trilha não encontrada para concluir.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-            // Remove a trilha da lista de "Em Progresso"
+        try {
+            setIsLoading(true); // Desabilita botões
+            await trackService.completeTrackAndUnlockReward(trackId);
+
+            // Remove a trilha das trilhas em progresso
             setInProgressTracks(prev => prev.filter(t => t.id !== trackId));
 
-            // Opcional: Se você tiver uma lista de trilhas "Completas" no frontend, adicione-a aqui.
-            // setCompletedTracks(prev => [...prev, { ...track, status: 'completed' }]);
+            toast({
+                title: "Trilha Concluída!",
+                description: `Parabéns! A trilha "${completedTrack.title}" foi marcada como completa.`,
+                variant: "success",
+            });
+            // Não há navegação aqui, a trilha simplesmente some desta lista.
+            // Ela aparecerá no dashboard do Students.tsx como concluída.
 
-            alert("Trilha marcada como completa com sucesso!");
         } catch (e: any) {
             console.error("Error completing track:", e);
-            alert(`Erro ao marcar a trilha como completa: ${e.message}`);
+            toast({
+                title: "Erro ao concluir trilha",
+                description: `Não foi possível marcar a trilha como completa: ${e.message}`,
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false); // Reabilita botões
         }
     };
 
@@ -96,21 +139,30 @@ export default function Journey() {
                 return <Linkedin className="w-6 h-6 text-blue-600 dark:text-blue-300" />;
             case 'arrow-right':
                 return <ArrowRight className="w-6 h-6 text-green-600 dark:text-green-300" />;
+            case 'check-circle': // Adicionado para ícone de conclusão
+                return <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-300" />;
             default:
                 return <ArrowRight className="w-6 h-6 text-gray-600 dark:text-gray-300" />;
         }
     };
 
     if (isLoadingAuth) {
-        return <div className="text-center mt-20 dark:text-white">Verificando autenticação e carregando trilhas...</div>;
+        return <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+            <p className="text-xl text-gray-700 dark:text-gray-300">Verificando autenticação e carregando trilhas...</p>
+        </div>;
     }
 
     if (isLoading) {
-        return <div className="text-center mt-20 dark:text-white">Carregando trilhas...</div>;
+        return <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+            <p className="text-xl text-gray-700 dark:text-gray-300">Carregando trilhas...</p>
+        </div>;
     }
 
     if (error) {
-        return <div className="text-center mt-20 text-red-500 dark:text-red-400">Erro ao carregar trilhas: {error}</div>;
+        return <div className="text-center mt-20 text-red-500 dark:text-red-400">
+            <p>Ocorreu um erro: {error}</p>
+            <p>Por favor, tente novamente mais tarde.</p>
+        </div>;
     }
 
     return (
@@ -137,7 +189,7 @@ export default function Journey() {
                             <Card key={track.id} className="dark:bg-gray-900 dark:border-gray-600 hover:shadow-lg transition-shadow duration-200">
                                 <CardContent className="p-5 flex flex-col items-start">
                                     <div className="w-12 h-12 rounded-full mb-3 flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-purple-100 dark:bg-purple-900">
-                                        {renderIcon(track.icon)}
+                                        {renderIcon(track.icon_name)}
                                     </div>
                                     <h3 className="text-xl font-semibold mb-2 dark:text-white">{track.title}</h3>
                                     <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow">
@@ -146,8 +198,14 @@ export default function Journey() {
                                     <Button
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-600"
                                         onClick={() => handleStartTrack(track)}
+                                        disabled={isLoading} // Desabilita o botão enquanto a requisição está em andamento
                                     >
-                                        Desbloquear R${typeof track.rewardValue === 'number' ? track.rewardValue.toFixed(2) : parseFloat(track.rewardValue as any || '0').toFixed(2)} <ArrowRight className="w-4 h-4 ml-2" />
+                                        Desbloquear R$
+                                        {typeof track.reward_value === 'number'
+                                            ? track.reward_value.toFixed(2)
+                                            : '0.00'
+                                        }
+                                        <ArrowRight className="w-4 h-4 ml-2" />
                                     </Button>
                                 </CardContent>
                             </Card>
@@ -168,23 +226,25 @@ export default function Journey() {
                         {inProgressTracks.map((track) => (
                             <Card key={track.id} className="dark:bg-gray-900 dark:border-gray-600 hover:shadow-lg transition-shadow duration-200">
                                 <CardContent className="p-5 flex flex-col items-start">
-                                    <div className="w-12 h-12 rounded-full mb-3 flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-green-100 dark:bg-green-900">
-                                        {renderIcon(track.icon)}
+                                    <div className="w-12 h-12 rounded-full mb-3 flex items-center justify-center border border-gray-200 dark:border-gray-700 bg-orange-100 dark:bg-orange-900"> {/* Cor ajustada para 'in-progress' */}
+                                        <Clock className="w-6 h-6 text-orange-600 dark:text-orange-300" /> {/* Ícone de relógio para 'em progresso' */}
                                     </div>
                                     <h3 className="text-xl font-semibold mb-2 dark:text-white">{track.title}</h3>
                                     <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow">
                                         {track.description}
                                     </p>
-                                    <div className="flex flex-col gap-2 w-full"> {/* Adicionado um container para os botões */}
+                                    <div className="flex flex-col gap-2 w-full">
                                         <Button
                                             className="w-full bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-600"
                                             onClick={() => navigate(track.path)}
+                                            disabled={isLoading} // Desabilita o botão
                                         >
                                             Continuar Trilha <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>
                                         <Button
                                             className="w-full bg-yellow-600 hover:bg-yellow-700 text-white dark:bg-yellow-700 dark:hover:bg-yellow-600"
-                                            onClick={() => handleCompleteTrack(track.id)} // Chamada para a nova função
+                                            onClick={() => handleCompleteTrack(track.id)}
+                                            disabled={isLoading} // Desabilita o botão
                                         >
                                             Marcar como Concluída <CheckCircle className="w-4 h-4 ml-2" />
                                         </Button>
@@ -194,6 +254,14 @@ export default function Journey() {
                         ))}
                     </CardContent>
                 </Card>
+            )}
+
+            {availableTracks.length === 0 && inProgressTracks.length === 0 && (
+                <div className="text-center py-10">
+                    <p className="text-xl text-gray-500 dark:text-gray-400">
+                        Nenhuma trilha disponível ou em progresso no momento. Volte mais tarde!
+                    </p>
+                </div>
             )}
         </div>
     );

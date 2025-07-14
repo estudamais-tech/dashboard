@@ -7,7 +7,8 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from '../hooks/useAuth'; // Importado para obter dados do usuário logado
 
 export function DashboardHeader() {
-  const { userName, userAvatar, userEmail, logout } = useAuth();
+  // AJUSTE 1: Certifique-se de que 'githubLogin' é desestruturado do hook useAuth
+  const { userName, userAvatar, userEmail, githubLogin, logout } = useAuth();
 
   const sidebarContext = useSidebar();
   const isSidebarOpen = sidebarContext && 'isOpen' in sidebarContext ? sidebarContext.isOpen : false;
@@ -83,12 +84,17 @@ export function DashboardHeader() {
     setIsProfileModalOpen(false);
   };
 
+  // AJUSTE 2: Variável para o nome a ser exibido, usando githubLogin como fallback
+  const displayUserName = userName || githubLogin;
+  // Opcional: Se quiser um fallback mais genérico caso ambos sejam nulos
+  // const displayUserName = userName || githubLogin || 'Usuário';
+
   return (
     <header
       className={`
         bg-white border-b border-gray-200 px-6 py-2 fixed top-0 right-0 z-50 transition-all duration-300
         ${isSidebarOpen ? 'left-64' : 'left-0'}
-        dark:bg-gray-800/50 dark:border-gray-700 dark:backdrop-blur-[20px]
+         backdrop-blur-[10px] bg-white/30 dark:bg-[#143b32]/30 border-r border-gray-200 dark:border-gray-700
       `}
     >
       <div className="flex items-center justify-between">
@@ -127,8 +133,9 @@ export function DashboardHeader() {
                 className="rounded-full w-9 h-9 border-2 border-gray-300 dark:border-gray-500"
               />
             )}
-            {userName && (
-              <span className="text-base font-semibold text-gray-800 hidden md:block dark:text-white">{userName}</span>
+            {/* AJUSTE 3: Usar 'displayUserName' para exibir o nome */}
+            {displayUserName && (
+              <span className="text-base font-semibold text-gray-800 hidden md:block dark:text-white">{displayUserName}</span>
             )}
           </div>
 
@@ -158,9 +165,10 @@ export function DashboardHeader() {
                 />
               </div>
             )}
-            {userName && (
+            {/* AJUSTE 4: Usar 'displayUserName' para exibir o nome no modal também */}
+            {displayUserName && (
               <p className="text-lg font-semibold text-gray-800 text-center mb-2 dark:text-white">
-                Nome: <span className="font-normal">{userName}</span>
+                Nome: <span className="font-normal">{displayUserName}</span>
               </p>
             )}
             {userEmail && (

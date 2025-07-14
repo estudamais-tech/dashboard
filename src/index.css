@@ -109,10 +109,9 @@
   }
 }
 
-/* ESTE BLOCO ESTÁ CAUSANDO O PROBLEMA DE SOBRESCRITA. REMOVA-O OU MANTENHA APENAS O QUE É NECESSÁRIO E NÃO CONFLITE.
-   É uma boa prática centralizar a definição das variáveis de cor no @layer base :root e .dark.
+
 :root {
-  --sidebar-background: transparent; // ESTA LINHA ESTÁ SOBRESCRVENDO O BACKGROUND COM OPACIDADE!
+  /* --sidebar-background: transparent;  */
   --primary-color: #00A895;
   --bg-color:#143b32;
   --secondary-color: #FDFDFD;
@@ -127,7 +126,7 @@
   --background-color: #F5F5F5;
   --shadow-color: #000000;
 }
-*/
+
 
 a {
   text-decoration: none;

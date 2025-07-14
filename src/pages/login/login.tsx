@@ -87,7 +87,7 @@ export default function Login() {
       {/* A logo agora está DENTRO da div do cartão, mas posicionada de forma absoluta em relação a ela */}
       <div className="relative bg-white p-10 rounded-lg shadow-lg text-center w-full max-w-md z-10 pt-20"> {/* Adicionado 'relative' e 'pt-20' aqui */}
         <img
-          src="/img/icons/logo.png"
+          src="/img/icons/logo.webp"
           alt="Logo"
           className='absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16' // Tamanho w-24 h-24 (96px)
           style={{ top: '0' }} // Posiciona o topo da logo no topo da div pai (o cartão)

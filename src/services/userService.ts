@@ -1,229 +1,228 @@
 // src/services/userService.ts
 import { API_BASE_URL } from '../config/apiConfig';
+import { handleApiResponse } from '../utils/apiErrorHandler'; // Correct import for the utility function
+
+export interface User {
+    id: number;
+    github_login: string;
+    name: string | null;
+    email: string | null;
+    github_status: string;
+    benefits_activated: number;
+    course: string | null;
+    currentSemester: number | null;
+    totalSemesters: number | null;
+    areasOfInterest: string[] | null; // Allow null as it can come as null from backend
+    totalEconomy: string; // Backend sends this as a string
+    redeemedBenefits: string[] | null; // Allow null as it can come as null from backend
+    onboarding_complete: number; // Assuming 0 or 1
+    // Add these properties to match what you set in studentData state
+    totalSaved: number; // Calculated and stored as a number in frontend state
+    totalPossibleBenefits: number; // Calculated and stored as a number in frontend state
+}
+
+
+// Define the interface for the count responses
+interface CountResponse {
+    total_users?: number;
+    github_users_count?: number;
+    active_benefits_count?: number;
+    pending_students_count?: number;
+    // Add any other count properties your backend might return
+}
+
+// Define the interface for the onboarding response if known
+interface OnboardingResponse {
+    message: string;
+    // Add other properties if the backend returns them after onboarding
+}
+
+// Define the interface for the benefit update response if known
+interface BenefitUpdateResponse {
+    message: string;
+    // Add other properties if the backend returns them after updating a benefit
+}
+
 
 const userService = {
-  // Função para buscar a contagem total de usuários
-  async getTotalUsersCount(): Promise<number> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/count`);
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Fetches the total count of all users.
+     */
+    async getTotalUsersCount(): Promise<number> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/users/count`);
+            // Use handleApiResponse and explicitly type the expected data
+            const data: CountResponse = await handleApiResponse(response);
+            console.log('Total user count received:', data.total_users);
+            if (typeof data.total_users === 'number') {
+                return data.total_users;
+            } else {
+                throw new Error('Unexpected data format for total users count: total_users is missing or not a number.');
+            }
+        } catch (error) {
+            console.error('Error in getTotalUsersCount service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar contagem total de usuários:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao buscar a contagem de usuários da API.');
-      }
-      const data = await response.json();
-      console.log('Contagem total de usuários recebida:', data.total_users);
-      return data.total_users;
-    } catch (error) {
-      console.error('Erro em getTotalUsersCount:', error);
-      throw error;
-    }
-  },
+    },
 
-  // Função para buscar a contagem de usuários com GitHub
-  async getGithubUsersCount(): Promise<number> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/github-count`);
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Fetches the count of users with linked GitHub accounts.
+     */
+    async getGithubUsersCount(): Promise<number> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/users/github-count`);
+            const data: CountResponse = await handleApiResponse(response);
+            console.log('GitHub user count received:', data.github_users_count);
+            if (typeof data.github_users_count === 'number') {
+                return data.github_users_count;
+            } else {
+                throw new Error('Unexpected data format for GitHub users count: github_users_count is missing or not a number.');
+            }
+        } catch (error) {
+            console.error('Error in getGithubUsersCount service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar contagem de usuários com GitHub:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao buscar a contagem de usuários com GitHub da API.');
-      }
-      const data = await response.json();
-      console.log('Contagem de usuários com GitHub recebida:', data.github_users_count);
-      return data.github_users_count;
-    } catch (error) {
-      console.error('Erro em getGithubUsersCount:', error);
-      throw error;
-    }
-  },
+    },
 
-  // Função para buscar a lista completa de estudantes
-  async getAllStudents(): Promise<any[]> { // Use 'any[]' ou defina uma interface mais específica se souber a estrutura
-    try {
-      const response = await fetch(`${API_BASE_URL}/users`);
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Fetches a complete list of students.
+     * Assumes backend returns an array of User objects, possibly wrapped in { students: User[] }.
+     */
+    async getAllStudents(): Promise<User[]> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/users`);
+            // The handleApiResponse<T> will infer T as { students?: User[] } | User[] based on usage
+            const data: { students?: User[] } | User[] = await handleApiResponse(response);
+            console.log('Raw student list received:', data);
+
+            if (data && Array.isArray((data as { students: User[] }).students)) {
+                console.log('Extracted student list from "students" property:', (data as { students: User[] }).students);
+                return (data as { students: User[] }).students;
+            } else if (Array.isArray(data)) {
+                console.log('Backend returned array directly:', data);
+                return data;
+            } else {
+                console.error('Unexpected response format for getAllStudents:', data);
+                throw new Error('Unexpected student data format from backend.');
+            }
+        } catch (error) {
+            console.error('Error in getAllStudents service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar lista de estudantes:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao carregar a lista de estudantes da API.');
-      }
-      const data = await response.json();
-      console.log('Lista de estudantes recebida (raw data):', data);
+    },
 
-      if (data && Array.isArray(data.students)) {
-        console.log('Lista de estudantes extraída:', data.students);
-        return data.students; // Retorna o array dentro da propriedade 'students'
-      } else if (Array.isArray(data)) {
-        console.log('Backend retornou array diretamente:', data);
-        return data;
-      } else {
-        console.error('Formato de resposta inesperado para getAllStudents:', data);
-        throw new Error('Formato de dados de estudantes inesperado do backend.');
-      }
-
-    } catch (error) {
-      console.error('Erro em getAllStudents:', error);
-      throw error;
-    }
-  },
-
-  // Funções adicionais para as outras contagens (necessárias para o Students.tsx e Dashboard.tsx)
-  async getStudentsWithActiveBenefitsCount(): Promise<number> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/active-benefits-count`);
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Fetches the count of students with active benefits.
+     */
+    async getStudentsWithActiveBenefitsCount(): Promise<number> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/users/active-benefits-count`);
+            const data: CountResponse = await handleApiResponse(response);
+            console.log('Count of students with active benefits received:', data.active_benefits_count);
+            if (typeof data.active_benefits_count === 'number') {
+                return data.active_benefits_count;
+            } else {
+                throw new Error('Unexpected data format for active benefits count: active_benefits_count is missing or not a number.');
+            }
+        } catch (error) {
+            console.error('Error in getStudentsWithActiveBenefitsCount service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar contagem de usuários com benefícios ativos:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao buscar a contagem de usuários com benefícios ativos da API.');
-      }
-      const data = await response.json();
-      console.log('Contagem de usuários com benefícios ativos recebida:', data.active_benefits_count);
-      return data.active_benefits_count;
-    } catch (error) {
-      console.error('Erro em getStudentsWithActiveBenefitsCount:', error);
-      throw error;
-    }
-  },
+    },
 
-  async getPendingStudentsCount(): Promise<number> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/pending-github-count`);
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Fetches the count of students with pending GitHub status.
+     */
+    async getPendingStudentsCount(): Promise<number> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/users/pending-github-count`); // Corrected double await
+            const data: CountResponse = await handleApiResponse(response);
+            console.log('Pending students count received:', data.pending_students_count);
+            if (typeof data.pending_students_count === 'number') {
+                return data.pending_students_count;
+            } else {
+                throw new Error('Unexpected data format for pending students count: pending_students_count is missing or not a number.');
+            }
+        } catch (error) {
+            console.error('Error in getPendingStudentsCount service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar contagem de usuários pendentes:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao buscar a contagem de usuários pendentes da API.');
-      }
-      const data = await response.json();
-      console.log('Contagem de usuários pendentes recebida:', data.pending_students_count);
-      return data.pending_students_count;
-    } catch (error) {
-      console.error('Erro em getPendingStudentsCount:', error);
-      throw error;
-    }
-  },
+    },
 
-  // --- NOVAS FUNÇÕES PARA A DASHBOARD DO ESTUDANTE ---
-
-  // Função para salvar os dados de onboarding do estudante
-  async saveOnboardingData(onboardingData: { course: string; currentSemester: number; totalSemesters: number; areasOfInterest: string[]; }): Promise<any> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/onboard`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // ADICIONADO: Incluir credenciais para enviar o cookie de autenticação
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(onboardingData),
-        credentials: 'include', // ADICIONADO: Enviar cookies com a requisição
-      });
-
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Sends onboarding data for a student to the backend.
+     */
+     async saveOnboardingData(onboardingData: { course: string; currentSemester: number; totalSemesters: number; areasOfInterest: string[]; }): Promise<OnboardingResponse> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
-        }
-        console.error('Erro na API ao salvar dados de onboarding:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao salvar dados de onboarding.');
-      }
-      const data = await response.json();
-      console.log('Dados de onboarding salvos com sucesso:', data);
-      return data;
-    } catch (error) {
-      console.error('Erro em saveOnboardingData:', error);
-      throw error;
-    }
-  },
+            const response = await fetch(`${API_BASE_URL}/users/onboard`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(onboardingData), // Dados enviados aqui
+                credentials: 'include',
+            });
 
-  // Função para buscar os dados específicos da dashboard do estudante logado
-  async getStudentDashboardData(): Promise<any> { // Use 'any' ou a interface StudentData definida no StudentDashboard.tsx
-    try {
-      // REMOVIDO: Dados mockados
-      const response = await fetch(`${API_BASE_URL}/student/dashboard`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-        credentials: 'include', // ADICIONADO: Enviar cookies com a requisição
-      });
-      if (!response.ok) {
-        let errorData;
+            const data: OnboardingResponse = await handleApiResponse(response);
+            console.log('Onboarding data saved successfully:', data);
+            return data;
+        } catch (error) {
+            console.error('Error in saveOnboardingData service:', error);
+            throw error;
+        }
+    },
+
+
+    /**
+     * Fetches specific dashboard data for the logged-in student.
+     * Assumes backend returns a User object or a subset of it.
+     */
+    async getStudentDashboardData(): Promise<User> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/student/dashboard`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+            });
+            const data: User = await handleApiResponse(response); // Cast to User interface
+            console.log('Student dashboard data received:', data);
+            return data;
+        } catch (error) {
+            console.error('Error in getStudentDashboardData service:', error);
+            throw error;
         }
-        console.error('Erro na API ao buscar dados da dashboard do estudante:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao buscar dados da dashboard do estudante.');
-      }
-      const data = await response.json();
-      console.log('Dados da dashboard do estudante recebidos:', data);
-      return data;
-    } catch (error) {
-      console.error('Erro em getStudentDashboardData:', error);
-      throw error;
-    }
-  },
+    },
 
-  // Função para atualizar o status de um benefício (resgatado/não resgatado)
-  async updateBenefitStatus(productId: string, isRedeemed: boolean, monthlyValueUSD: number, monthsRemaining: number): Promise<any> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/student/benefits/${productId}`, {
-        method: 'PUT', // Ou PATCH, dependendo da sua API
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ isRedeemed, monthlyValueUSD, monthsRemaining }), // ADICIONADO: monthlyValueUSD e monthsRemaining
-        credentials: 'include', // ADICIONADO: Enviar cookies com a requisição
-      });
-
-      if (!response.ok) {
-        let errorData;
+    /**
+     * Updates the redemption status of a benefit for the logged-in student.
+     * @param productId The ID of the benefit.
+     * @param isRedeemed Boolean indicating if the benefit is redeemed.
+     * @param monthlyValueUSD Monthly value of the benefit in USD.
+     * @param monthsRemaining Number of months remaining for the benefit.
+     */
+    async updateBenefitStatus(productId: string, isRedeemed: boolean, monthlyValueUSD: number, monthsRemaining: number): Promise<BenefitUpdateResponse> {
         try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: `HTTP error! Status: ${response.status}` };
+            const response = await fetch(`${API_BASE_URL}/student/benefits/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ isRedeemed, monthlyValueUSD, monthsRemaining }),
+                credentials: 'include',
+            });
+
+            const data: BenefitUpdateResponse = await handleApiResponse(response);
+            console.log('Benefit status updated successfully:', data);
+            return data;
+        } catch (error) {
+            console.error('Error in updateBenefitStatus service:', error);
+            throw error;
         }
-        console.error('Erro na API ao atualizar status do benefício:', response.status, errorData);
-        throw new Error(errorData.message || 'Falha ao atualizar status do benefício.');
-      }
-      const data = await response.json();
-      console.log('Status do benefício atualizado com sucesso:', data);
-      return data;
-    } catch (error) {
-      console.error('Erro em updateBenefitStatus:', error);
-      throw error;
-    }
-  },
+    },
 };
 
 export default userService;
-// correto
