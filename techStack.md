@@ -5,7 +5,7 @@
 ### ✅ Etapa 1: Organização e Documentação
 - [x] Criar `PORTAS-EM-USO.md` com as portas atuais da VPS
 - [x] Criar `TECH_STACK.md` com o inventário geral das stacks
-- [ ] Adicionar `.env.example` nos repositórios (dashboard/backend)
+- [x] Adicionar `.env.example` nos repositórios (dashboard/backend)
 
 ### 📘 TECH_STACK.md
 

@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Banco de Dados MySQL
+  mysql:
+    image: mysql:8.4
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: estudamais_root
+      MYSQL_DATABASE: estudamais_db
+      MYSQL_USER: estudamais
+      MYSQL_PASSWORD: estudamais_pw
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - estudamais_net
+
+  # Backend Node.js
+  backend:
+    build:
+      context: ../Backend_estudamais
+    restart: always
+    environment:
+      DB_HOST: mysql
+      DB_USER: estudamais
+      DB_PASSWORD: estudamais_pw
+      DB_NAME: estudamais_db
+      JWT_SECRET: sua_jwt_secret
+      GITHUB_CLIENT_ID: seu_id
+      GITHUB_CLIENT_SECRET: seu_secret
+      GITHUB_REDIRECT_URI: http://localhost/app
+      PORT: 3001
+    depends_on:
+      - mysql
+    ports:
+      - "3001:3001"
+    networks:
+      - estudamais_net
+
+  # Dashboard (React, build estático)
+  dashboard:
+    build:
+      context: ../dashboard
+    restart: always
+    ports:
+      - "5173:5173"
+    networks:
+      - estudamais_net
+
+  # Landing Page (React, build estático)
+  landing:
+    build:
+      context: ../frontend-estudamais
+    restart: always
+    ports:
+      - "8080:80"
+    networks:
+      - estudamais_net
+
+  # Nginx reverse proxy principal
+  nginx-proxy:
+    image: nginx:stable-alpine
+    depends_on:
+      - backend
+      - dashboard
+      - landing
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Se for usar SSL:
+      # - ./certs:/etc/letsencrypt
+    networks:
+      - estudamais_net
+
+volumes:
+  mysql_data:
+
+networks:
+  estudamais_net:
+    driver: bridge
