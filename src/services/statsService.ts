@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../config/apiConfig'; // Importa o BASE_URL consis
 
 // Defina a interface para os dados que você espera receber do endpoint de stats globais
 export interface GlobalStats {
-    total_users: number;
+    total_usuarios: number; // CORRIGIDO: Alterado de 'total_users' para 'total_usuarios'
     total_unlocked_value: string; // Vem como string do DECIMAL do MySQL
 }
 
@@ -37,6 +37,7 @@ const statsService = {
 
             const data: GlobalStats = await response.json(); // Já tipa como GlobalStats
             console.log('[FRONTEND] Dados de estatísticas globais recebidos:', data);
+            console.log('[FRONTEND] total_usuarios from GlobalStats (corrected):', data.total_usuarios); // LOG ATUALIZADO
             return data;
         } catch (error) {
             console.error('[FRONTEND] Erro ao buscar estatísticas globais:', error);

@@ -129,7 +129,7 @@ export default function Login() {
         </button>
 
         <p className="mt-6 text-xs text-gray-500 dark:text-gray-600">
-          Ao fazer login, você concorda com nossos Termos de Serviço e. <a href="#" className='text-blue-500 dark:text-blue-700'>Política de Privacidade</a>
+          Ao fazer login, você concorda com nossos Termos de Serviço e. <a href="/privacy-policy" className='text-blue-500 dark:text-blue-700'>Política de Privacidade</a>
         </p>
       </div>
     </section>

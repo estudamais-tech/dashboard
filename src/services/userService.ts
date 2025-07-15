@@ -7,6 +7,7 @@ export interface User {
     github_login: string;
     name: string | null;
     email: string | null;
+    avatar_url: string | null; // AJUSTE: Permite que avatar_url seja null
     github_status: string;
     benefits_activated: number;
     course: string | null;
@@ -188,7 +189,7 @@ const userService = {
                 credentials: 'include',
             });
             const data: User = await handleApiResponse(response); // Cast to User interface
-            console.log('Student dashboard data received:', data);
+            console.log('userService: Student dashboard data received:', data); // LOG EXISTENTE
             return data;
         } catch (error) {
             console.error('Error in getStudentDashboardData service:', error);

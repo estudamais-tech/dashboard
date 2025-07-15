@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+// src/pages/Students.tsx
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,7 @@ interface Product {
 }
 
 const MOCK_PRODUCTS: Product[] = [
-  
+    // Seus produtos mockados aqui
 ];
 
 interface StudentDashboardData extends User {
@@ -55,9 +56,23 @@ interface StudentDashboardData extends User {
 }
 
 export default function Students() {
-    const { userName, githubLogin, isAuthenticated, isLoadingAuth } = useAuth();
+    // AJUSTE: Desestruturar o objeto 'user' completo do useAuth
+    const { user, isAuthenticated, isLoadingAuth } = useAuth();
+    // Acessar as propriedades do usuário a partir do objeto 'user'
+    const userName = user?.name;
+    const githubLogin = user?.github_login;
+    const userAvatar = user?.avatar_url; // Adicionado para consistência, embora não usado diretamente aqui no Students.tsx para exibição principal
+
     const { toast } = useToast();
     const navigate = useNavigate();
+
+    // NOVO LOG: Para depurar os valores recebidos no Students.tsx
+    useEffect(() => {
+        console.log('Students.tsx: user object from useAuth:', user);
+        console.log('Students.tsx: userName:', userName);
+        console.log('Students.tsx: githubLogin:', githubLogin);
+    }, [user, userName, githubLogin]);
+
 
     const [totalStudentsCount, setTotalStudentsCount] = useState<number | string>('...');
     const [loadingTotalStudents, setLoadingTotalStudents] = useState<boolean>(true);
@@ -99,7 +114,7 @@ export default function Students() {
     }, []);
 
     const calculateTotalPossibleBenefits = useCallback((areas: string[], remainingMonths: number) => {
-        let total = 200.000;
+        let total = 200000; // Ajustado para número, pois o valor original '200.000' é uma string e causaria NaN
         areas.forEach(area => {
             const productsInArea = MOCK_PRODUCTS.filter(p => p.area === area);
             total += productsInArea.reduce((sum, product) => sum + (product.monthlyValueUSD * remainingMonths), 0);
@@ -377,7 +392,7 @@ export default function Students() {
                         Bem-vindo(a) à sua dashboard Estudamais.tech.
                     </p>
                     <p className="text-md text-gray-500 dark:text-gray-400">
-                        Curso: <span className="font-semibold">{studentData.course || 'N/A'}</span> | Semestre: <span className="font-semibold">{studentData.currentSemester || 'N/A'}/{studentData.totalSemesters || 'N/A'}</span> | Área(s): <span className="font-semibold">{(studentData.areasOfInterest || []).join(', ')}</span> {/* <-- AQUI ESTÁ A MUDANÇA: Removido o `|| 'N/A'` */}
+                        Curso: <span className="font-semibold">{studentData.course || 'N/A'}</span> | Semestre: <span className="font-semibold">{studentData.currentSemester || 'N/A'}/{studentData.totalSemesters || 'N/A'}</span> | Área(s): <span className="font-semibold">{(studentData.areasOfInterest || []).join(', ')}</span>
                     </p>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-200 dark:bg-gray-700 p-3 rounded-full shadow-lg">

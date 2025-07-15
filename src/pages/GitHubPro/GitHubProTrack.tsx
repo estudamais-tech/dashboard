@@ -5,26 +5,18 @@ import {
   Github,
   Link,
   CheckCircle,
-  XCircle,
-  BookOpen,
-  Monitor,
   Smartphone,
-  Mail,
-  UserCheck,
-  Hourglass,
   Lightbulb,
-  Video,
-  ArrowRight,
   ExternalLink
 } from "lucide-react";
-import { useNavigate } from 'react-router-dom'; // Importar useNavigate
+import { useNavigate } from 'react-router-dom'; 
 
 export default function GitHubProTrack() {
-  const navigate = useNavigate(); // Inicializar useNavigate
+  const navigate = useNavigate();
 
   return (
-    <div className="space-y-4 p-1 mt-14 w-[90%] mx-auto"> {/* Ajustado para w-[80%] e mx-auto */}
-      <div className="text-left mb-8 flex justify-between items-center"> {/* Adicionado flex e justify-between para o botão */}
+    <div className="space-y-4 p-1 mt-14 w-[90%] mx-auto"> 
+      <div className="text-left mb-8 flex justify-between items-center"> 
         <div>
           <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">
             Trilha: Ative seu GitHub Pro!
@@ -36,7 +28,7 @@ export default function GitHubProTrack() {
         <Button
           variant="outline"
           className="dark:bg-gray-900 dark:text-white dark:border-gray-600 hover:dark:bg-gray-700"
-          onClick={() => navigate('/dashboard/students/journey')} // Botão para voltar para a jornada
+          onClick={() => navigate('/dashboard/students/journey')} 
         >
           Voltar para Jornada
         </Button>

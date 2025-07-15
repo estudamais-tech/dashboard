@@ -3,12 +3,24 @@ import { Bell, Search, User, X, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"; 
-// AJUSTE: Corrigido o caminho do import para o hook useAuth
 import { useAuth } from '../hooks/useAuth'; // Importado para obter dados do usuário logado
 
 export function DashboardHeader() {
   // AJUSTE 1: Certifique-se de que 'githubLogin' é desestruturado do hook useAuth
-  const { userName, userAvatar, userEmail, githubLogin, logout } = useAuth();
+  const { user, logout } = useAuth(); // Obter o objeto user completo
+  const userName = user?.name;
+  const userAvatar = user?.avatar_url;
+  const userEmail = user?.email;
+  const githubLogin = user?.github_login;
+
+  // NOVO LOG: Para depurar os valores recebidos
+  useEffect(() => {
+    console.log('DashboardHeader: user object from useAuth:', user);
+    console.log('DashboardHeader: userName:', userName);
+    console.log('DashboardHeader: userAvatar:', userAvatar);
+    console.log('DashboardHeader: githubLogin:', githubLogin);
+  }, [user, userName, userAvatar, githubLogin]);
+
 
   const sidebarContext = useSidebar();
   const isSidebarOpen = sidebarContext && 'isOpen' in sidebarContext ? sidebarContext.isOpen : false;
@@ -85,16 +97,17 @@ export function DashboardHeader() {
   };
 
   // AJUSTE 2: Variável para o nome a ser exibido, usando githubLogin como fallback
-  const displayUserName = userName || githubLogin;
-  // Opcional: Se quiser um fallback mais genérico caso ambos sejam nulos
-  // const displayUserName = userName || githubLogin || 'Usuário';
+  const displayUserName = userName || githubLogin || 'Usuário'; // Adicionado 'Usuário' como fallback final
+  // AJUSTE 3: Fallback para o avatar
+  const displayUserAvatar = userAvatar || `https://placehold.co/36x36/cccccc/000000?text=${displayUserName.charAt(0).toUpperCase()}`;
+
 
   return (
     <header
       className={`
         bg-white border-b border-gray-200 px-6 py-2 fixed top-0 right-0 z-50 transition-all duration-300
         ${isSidebarOpen ? 'left-64' : 'left-0'}
-         backdrop-blur-[10px] bg-white/30 dark:bg-[#143b32]/30 border-r border-gray-200 dark:border-gray-700
+          backdrop-blur-[10px] bg-white/30 dark:bg-[#143b32]/30 border-r border-gray-200 dark:border-gray-700
       `}
     >
       <div className="flex items-center justify-between">
@@ -126,17 +139,14 @@ export function DashboardHeader() {
             className="flex items-center gap-2 cursor-pointer"
             onClick={handleOpenProfileModal}
           >
-            {userAvatar && (
-              <img
-                src={userAvatar}
-                alt="Avatar do Usuário"
-                className="rounded-full w-9 h-9 border-2 border-gray-300 dark:border-gray-500"
-              />
-            )}
-            {/* AJUSTE 3: Usar 'displayUserName' para exibir o nome */}
-            {displayUserName && (
-              <span className="text-base font-semibold text-gray-800 hidden md:block dark:text-white">{displayUserName}</span>
-            )}
+            {/* AJUSTE 4: Usar 'displayUserAvatar' para o src da imagem */}
+            <img
+              src={displayUserAvatar}
+              alt="Avatar do Usuário"
+              className="rounded-full w-9 h-9 border-2 border-gray-300 dark:border-gray-500"
+            />
+            {/* AJUSTE 5: Usar 'displayUserName' para exibir o nome */}
+            <span className="text-base font-semibold text-gray-800 hidden md:block dark:text-white">{displayUserName}</span>
           </div>
 
           <Button onClick={logout} variant="ghost" className="text-red-500 hover:text-red-700">
@@ -156,21 +166,18 @@ export function DashboardHeader() {
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold mb-4 text-center text-gray-800 dark:text-white">Seu Perfil</h2>
-            {userAvatar && (
-              <div className="flex justify-center mb-4">
-                <img
-                  src={userAvatar}
-                  alt="Avatar do Usuário"
-                  className="rounded-full w-32 h-32 border-4 border-purple-400 dark:border-purple-300"
-                />
-              </div>
-            )}
-            {/* AJUSTE 4: Usar 'displayUserName' para exibir o nome no modal também */}
-            {displayUserName && (
-              <p className="text-lg font-semibold text-gray-800 text-center mb-2 dark:text-white">
-                Nome: <span className="font-normal">{displayUserName}</span>
-              </p>
-            )}
+            {/* AJUSTE 6: Usar 'displayUserAvatar' para o src da imagem no modal */}
+            <div className="flex justify-center mb-4">
+              <img
+                src={displayUserAvatar}
+                alt="Avatar do Usuário"
+                className="rounded-full w-32 h-32 border-4 border-purple-400 dark:border-purple-300"
+              />
+            </div>
+            {/* AJUSTE 7: Usar 'displayUserName' para exibir o nome no modal também */}
+            <p className="text-lg font-semibold text-gray-800 text-center mb-2 dark:text-white">
+              Nome: <span className="font-normal">{displayUserName}</span>
+            </p>
             {userEmail && (
               <p className="text-md text-gray-600 text-center mb-4 dark:text-gray-300">
                 Email: <span className="font-normal">{userEmail}</span>

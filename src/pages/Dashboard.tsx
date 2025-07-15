@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth'; // Ensure this path is correct
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -15,18 +15,19 @@ import {
     Star
 } from "lucide-react";
 
-import githubAuthService from '../services/githubAuthService';
-import userService, { User } from '../services/userService';
-import trackService, { Track } from '../services/trackService';
-import statsService, { GlobalStats } from '../services/statsService';
-
+import githubAuthService from '../services/githubAuthService'; // Service to call your backend auth endpoint
+import userService, { User } from '../services/userService'; // Ensure User interface is imported
+import trackService, { Track } from '../services/trackService'; // Ensure Track interface is imported
+import statsService, { GlobalStats } from '../services/statsService'; // Ensure GlobalStats interface is imported
+import OnboardingForm from '../components/OnboardingForm'; // Assuming you have this component
 
 export default function Dashboard() {
-    const { isAuthenticated, setIsLoadingAuth, login, logout } = useAuth();
+    const { isAuthenticated, user, isLoadingAuth, login, logout, checkAuthStatus } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const authProcessed = useRef(false);
+    const authCodeProcessed = useRef(false); // To ensure GitHub code is processed only once
 
+    // States for dashboard data
     const [totalStudentsCount, setTotalStudentsCount] = useState<number | string>('...');
     const [loadingTotalStudents, setLoadingTotalStudents] = useState<boolean>(true);
     const [errorTotalStudents, setErrorTotalStudents] = useState<string | null>(null);
@@ -34,6 +35,12 @@ export default function Dashboard() {
     const [totalInvestmentLiberated, setTotalInvestmentLiberated] = useState<number | string>('...');
     const [loadingTotalInvestment, setLoadingTotalInvestment] = useState<boolean>(true);
     const [errorTotalInvestment, setErrorTotalInvestment] = useState<string | null>(null);
+
+    // NOVO ESTADO PARA CONTAGEM DE USUÁRIOS DO GITHUB
+    const [githubUsersCount, setGithubUsersCount] = useState<number | string>('...');
+    const [loadingGithubUsers, setLoadingGithubUsers] = useState<boolean>(true);
+    const [errorGithubUsers, setErrorGithubUsers] = useState<string | null>(null);
+
 
     const [completionRate, setCompletionRate] = useState<number | string>('...');
     const [loadingCompletionRate, setLoadingCompletionRate] = useState<boolean>(true);
@@ -50,178 +57,178 @@ export default function Dashboard() {
     const [loadingTracks, setLoadingTracks] = useState<boolean>(true);
     const [errorTracks, setErrorTracks] = useState<string | null>(null);
 
-    const [recentActivities, setRecentActivities] = useState<any[]>([
+    // Mock data for recent activities and valuable tools (replace with API calls if available)
+    const [recentActivities] = useState<any[]>([
         { id: 1, user: 'Maria Silva', action: 'ativou GitHub Copilot', value: 480, time: 'Há 1 hora', type: 'benefit' },
         { id: 2, user: 'João Santos', action: 'completou 20h de estudo', value: 20, time: 'Há 2 horas', type: 'credits' },
         { id: 3, user: 'Ana Costa', action: 'ativou JetBrains IDEs', value: 1195, time: 'Há 4 horas', type: 'benefit' },
         { id: 4, user: 'Pedro Oliveira', action: 'conquistou certificação', value: 49, time: 'Ontem', type: 'certification' },
     ]);
-    const [mostValuableTools, setMostValuableTools] = useState<any[]>([
+    const [mostValuableTools] = useState<any[]>([
         { name: 'JetBrains IDEs', activations: 321, value: 1195.20 },
         { name: 'GitHub Copilot', activations: 456, value: 480.00 },
         { name: 'Notion Education', activations: 287, value: 384.00 },
         { name: 'GitHub Pro', activations: 198, value: 336.00 },
     ]);
 
-
+    // Effect for handling GitHub authorization code
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const code = params.get('code');
 
-        console.log('Dashboard useEffect (Callback): Início.');
-        console.log('    - Código na URL:', code);
-        console.log('    - authProcessed.current:', authProcessed.current);
-        console.log('    - isAuthenticated do Context (Dashboard):', isAuthenticated);
+        console.log('Dashboard useEffect (Auth Code): Início.');
+        console.log(' - Código na URL:', code);
+        console.log(' - authCodeProcessed.current:', authCodeProcessed.current);
+        console.log(' - isAuthenticated do Context:', isAuthenticated);
+        console.log(' - isLoadingAuth do Context:', isLoadingAuth);
 
-        if (code && !authProcessed.current && !isAuthenticated) {
-            setIsLoadingAuth(true);
-            authProcessed.current = true;
-            console.log('Dashboard useEffect (Callback): Processando novo código de autorização do GitHub via backend.');
+        // Process code ONLY if it exists, hasn't been processed, and we are not already authenticated
+        if (code && !authCodeProcessed.current && !isAuthenticated) {
+            authCodeProcessed.current = true; // Mark as processing
+            console.log('Dashboard useEffect (Auth Code): Processando novo código de autorização do GitHub via backend.');
 
             const processGitHubCode = async () => {
                 try {
+                    // Call your service to exchange the code with the backend
                     const backendResponse = await githubAuthService.exchangeCodeForToken(code);
-
                     console.log('Dashboard: Resposta COMPLETA do backend em exchangeCodeForToken:', backendResponse);
 
                     if (backendResponse && backendResponse.user) {
-                        login(backendResponse.user);
+                        // Pass the received user data to the AuthContext's login function
+                        await login(backendResponse.user); // Await login to ensure state updates
                         console.log('Dashboard: Dados do usuário passados para a função login do AuthContext.');
                     } else {
                         console.error('Dashboard: Resposta do backend não contém dados de usuário válidos.', backendResponse);
                         throw new Error('Dados de usuário inválidos recebidos do backend.');
                     }
 
+                    // Clean the URL, but let AuthContext handle the navigation based on onboarding status
                     navigate(location.pathname, { replace: true });
-                    console.log('Dashboard: URL limpa e redirecionamento para o mesmo path concluído.');
+                    console.log('Dashboard: URL limpa.');
 
                 } catch (error) {
                     console.error('Dashboard: Erro ao processar o código do GitHub:', error);
-                    console.error('Falha na autenticação com o GitHub.');
-                    logout();
-                    navigate('/', { replace: true });
+                    logout(); // Log out on error
+                    navigate('/', { replace: true }); // Redirect to home on auth error
                 } finally {
-                    setIsLoadingAuth(false);
-                    console.log('Dashboard: Finalizada. isLoadingAuth = false.');
+                    // isLoadingAuth will be handled by AuthContext.
+                    // No need to set it here explicitly as login/checkAuthStatus already do.
+                    console.log('Dashboard: Processamento de código GitHub finalizado.');
                 }
             };
-
             processGitHubCode();
-        } else if (code && isAuthenticated) {
-            if (location.search.includes('code=')) {
-                console.log('Dashboard useEffect (Callback): Código na URL, mas já autenticado. Limpando URL.');
-                navigate(location.pathname, { replace: true });
-            }
+        } else if (code && isAuthenticated && !authCodeProcessed.current) { // Already authenticated but still has code in URL
+            console.log('Dashboard useEffect (Auth Code): Código na URL, mas já autenticado. Limpando URL.');
+            navigate(location.pathname, { replace: true });
+            authCodeProcessed.current = true; // Mark as processed to prevent re-runs
         } else {
-            console.log('Dashboard useEffect (Callback): Nenhuma ação de autenticação necessária neste ciclo.');
+            console.log('Dashboard useEffect (Auth Code): Nenhuma ação de autenticação necessária neste ciclo ou já processado.');
         }
+    }, [location.search, navigate, location.pathname, isAuthenticated, login, logout]);
 
-    }, [location.search, navigate, location.pathname, isAuthenticated, setIsLoadingAuth, login, logout]);
 
-
+    // Effect for fetching authenticated dashboard data
     useEffect(() => {
-        const fetchGlobalStats = async () => {
-            try {
-                setLoadingTotalStudents(true);
-                setLoadingTotalInvestment(true);
-                setErrorTotalStudents(null);
-                setErrorTotalInvestment(null);
+        // Fetch data ONLY if isAuthenticated is true and AuthContext is not still loading auth status
+        // and we are not in the middle of processing a new GitHub auth code
+        if (isAuthenticated && !isLoadingAuth && !authCodeProcessed.current) {
+            console.log('Dashboard useEffect (Data Fetch): Usuário autenticado, buscando dados...');
 
-                const stats = await statsService.getGlobalStats();
+            const fetchData = async () => {
+                // Fetch Global Stats
+                try {
+                    setLoadingTotalStudents(true);
+                    setLoadingTotalInvestment(true);
+                    // NOVO: Também carrega a contagem de usuários do GitHub
+                    setLoadingGithubUsers(true);
 
-                setTotalStudentsCount(stats.total_users);
-                setTotalInvestmentLiberated(parseFloat(stats.total_unlocked_value));
+                    const stats = await statsService.getGlobalStats();
+                    console.log('DEBUG: statsService.getGlobalStats() returned:', stats);
+                    setTotalStudentsCount(stats.total_usuarios);
+                    console.log('DEBUG: totalStudentsCount state set to:', stats.total_usuarios);
+                    setTotalInvestmentLiberated(parseFloat(stats.total_unlocked_value));
+                } catch (err: any) {
+                    console.error('Erro ao buscar estatísticas globais:', err);
+                    setErrorTotalStudents('N/A');
+                    setErrorTotalInvestment('N/A');
+                    setTotalStudentsCount('N/A');
+                    setTotalInvestmentLiberated('N/A');
+                } finally {
+                    setLoadingTotalStudents(false);
+                    setLoadingTotalInvestment(false);
+                }
 
-            } catch (err: any) {
-                console.error('Erro ao buscar estatísticas globais:', err);
-                const errorMessage = 'N/A';
-                setErrorTotalStudents(errorMessage);
-                setErrorTotalInvestment(errorMessage);
-                setTotalStudentsCount(errorMessage);
-                setTotalInvestmentLiberated(errorMessage);
-            } finally {
-                setLoadingTotalStudents(false);
-                setLoadingTotalInvestment(false);
-            }
-        };
-        fetchGlobalStats();
-    }, []);
+                // Fetch GitHub Users Count Separately
+                try {
+                    const githubCount = await userService.getGithubUsersCount();
+                    setGithubUsersCount(githubCount);
+                } catch (err: any) {
+                    console.error('Erro ao buscar contagem de usuários GitHub:', err);
+                    setErrorGithubUsers('N/A');
+                    setGithubUsersCount('N/A');
+                } finally {
+                    setLoadingGithubUsers(false);
+                }
 
 
-    useEffect(() => {
-        const fetchStudentDashboardData = async () => {
-            try {
-                setLoadingCalculatorData(true);
-                setErrorCalculatorData(null);
+                // Fetch Student Dashboard Data
+                try {
+                    setLoadingCalculatorData(true);
+                    setErrorCalculatorData(null);
+                    if (user?.id) { // Ensure user ID exists before fetching user-specific data
+                        const data: User = await userService.getStudentDashboardData();
+                        const totalPossible = data.totalPossibleBenefits || 0;
+                        const totalSaved = data.totalSaved || 0;
+                        setCalculatorTotalAvailable(totalPossible);
+                        setCalculatorAlreadyInvested(totalSaved);
+                        const balance = totalPossible - totalSaved;
+                        setCalculatorBalance(balance);
+                        const progress = totalPossible > 0 ? Math.round((totalSaved / totalPossible) * 100) : 0;
+                        setCalculatorProgressValue(progress);
+                    }
+                } catch (err: any) {
+                    console.error('Erro ao buscar dados do dashboard do estudante:', err);
+                    setErrorCalculatorData('N/A');
+                    setCalculatorTotalAvailable('N/A');
+                    setCalculatorAlreadyInvested('N/A');
+                    setCalculatorBalance('N/A');
+                    setCalculatorProgressValue(0);
+                } finally {
+                    setLoadingCalculatorData(false);
+                }
 
-                const data: User = await userService.getStudentDashboardData();
-
-                const totalPossible = data.totalPossibleBenefits || 0;
-                const totalSaved = data.totalSaved || 0;
-
-                setCalculatorTotalAvailable(totalPossible);
-                setCalculatorAlreadyInvested(totalSaved);
-
-                const balance = totalPossible - totalSaved;
-                setCalculatorBalance(balance);
-
-                const progress = totalPossible > 0
-                    ? Math.round((totalSaved / totalPossible) * 100)
-                    : 0;
-                setCalculatorProgressValue(progress);
-
-            } catch (err: any) {
-                console.error('Erro ao buscar dados do dashboard do estudante:', err);
-                const errorMessage = 'N/A';
-                setErrorCalculatorData(errorMessage);
-                setCalculatorTotalAvailable(errorMessage);
-                setCalculatorAlreadyInvested(errorMessage);
-                setCalculatorBalance(errorMessage);
-                setCalculatorProgressValue(0);
-            } finally {
-                setLoadingCalculatorData(false);
-            }
-        };
-
-        if (isAuthenticated) {
-            fetchStudentDashboardData();
+                // Fetch Tracks
+                try {
+                    setLoadingTracks(true);
+                    setLoadingCompletionRate(true);
+                    setErrorTracks(null);
+                    setErrorCompletionRate(null);
+                    const fetchedTracks = await trackService.getTracksForUser();
+                    const totalTracks = fetchedTracks.length;
+                    const completedTracks = fetchedTracks.filter(track => track.status === 'completed').length;
+                    const currentCompletionRate = totalTracks > 0 ? (completedTracks / totalTracks) * 100 : 0;
+                    setCompletionRate(currentCompletionRate);
+                    setTracks(fetchedTracks);
+                } catch (err: any) {
+                    console.error('Erro ao buscar trilhas da jornada:', err);
+                    setErrorTracks('Não disponível');
+                    setErrorCompletionRate('N/A');
+                    setTracks([]);
+                    setCompletionRate('N/A');
+                } finally {
+                    setLoadingTracks(false);
+                    setLoadingCompletionRate(false);
+                }
+            };
+            fetchData();
+        } else if (!isAuthenticated && !isLoadingAuth) {
+            console.log('Dashboard useEffect (Data Fetch): Não autenticado, não buscando dados.');
+        } else if (isLoadingAuth) {
+            console.log('Dashboard useEffect (Data Fetch): Autenticação ainda em progresso, aguardando...');
+        } else if (authCodeProcessed.current) {
+            console.log('Dashboard useEffect (Data Fetch): Processando código de autenticação, aguardando...');
         }
-    }, [isAuthenticated]);
-
-
-    useEffect(() => {
-        const fetchTracks = async () => {
-            try {
-                setLoadingTracks(true);
-                setLoadingCompletionRate(true);
-                setErrorTracks(null);
-                setErrorCompletionRate(null);
-
-                const fetchedTracks = await trackService.getTracksForUser();
-
-                const totalTracks = fetchedTracks.length;
-                const completedTracks = fetchedTracks.filter(track => track.status === 'completed').length;
-                const currentCompletionRate = totalTracks > 0 ? (completedTracks / totalTracks) * 100 : 0;
-                setCompletionRate(currentCompletionRate);
-
-                setTracks(fetchedTracks);
-            } catch (err: any) {
-                console.error('Erro ao buscar trilhas da jornada:', err);
-                setErrorTracks('Não disponível');
-                setErrorCompletionRate('N/A');
-                setTracks([]);
-                setCompletionRate('N/A');
-            } finally {
-                setLoadingTracks(false);
-                setLoadingCompletionRate(false);
-            }
-        };
-
-        if (isAuthenticated) {
-            fetchTracks();
-        }
-    }, [isAuthenticated]);
-
+    }, [isAuthenticated, isLoadingAuth, authCodeProcessed.current, user?.id]); // Depend on relevant auth states and user.id
 
     const formatCurrency = (value: number | string) => {
         if (typeof value === 'number') {
@@ -238,6 +245,8 @@ export default function Dashboard() {
     };
 
     const getTracksForStage = (stageName: string): Track[] => {
+        // Implement logic based on your Track structure to filter by stage
+        // This is simplified based on your previous code
         switch (stageName) {
             case 'Conta GitHub':
                 return tracks.filter(track => track.title.includes('GitHub') || track.title.includes('Conta'));
@@ -252,27 +261,31 @@ export default function Dashboard() {
         }
     };
 
-
     const getStageProgress = (stageName: string): number => {
         const stageTracks = getTracksForStage(stageName);
         if (stageTracks.length === 0) {
             return 0;
         }
-
         const completedStageTracks = stageTracks.filter(track => track.status === 'completed').length;
         return Math.round((completedStageTracks / stageTracks.length) * 100);
     };
 
+    // This function likely needs to pull student counts from an API,
+    // or be removed if it's mock data. Using `totalStudentsCount` for now.
     const getStageStudentCount = (stageName: string): string => {
-        const stageTracks = getTracksForStage(stageName);
-        if (stageTracks.length === 0) {
-            return '0 estudantes';
+        console.log(`DEBUG: getStageStudentCount called for ${stageName}. totalStudentsCount:`, totalStudentsCount); // NEW DEBUG LOG
+        // NOVO: Usa githubUsersCount para a etapa "Conta GitHub"
+        if (stageName === 'Conta GitHub') {
+            if (typeof githubUsersCount === 'number' && !loadingGithubUsers && !errorGithubUsers) {
+                return `${githubUsersCount.toLocaleString('pt-BR')} estudantes`;
+            }
+            return 'N/A';
         }
 
+        // Para as outras etapas, continua usando totalStudentsCount (que agora vem do COUNT(*) da tabela usuarios)
         if (typeof totalStudentsCount === 'number' && !loadingTotalStudents && !errorTotalStudents) {
-            if (stageName === 'Conta GitHub') {
-                return `${Math.round(totalStudentsCount * 0.95).toLocaleString('pt-BR')} estudantes`;
-            } else if (stageName === 'Student Pack') {
+            // These percentages are hardcoded. Ideally, they'd come from backend stats specific to stages.
+            if (stageName === 'Student Pack') {
                 return `${Math.round(totalStudentsCount * 0.80).toLocaleString('pt-BR')} estudantes`;
             } else if (stageName === 'Ferramentas Premium') {
                 return `${Math.round(totalStudentsCount * 0.60).toLocaleString('pt-BR')} estudantes`;
@@ -283,19 +296,48 @@ export default function Dashboard() {
         return 'N/A';
     };
 
+
+    // Render logic based on authentication status and loading state
+    if (isLoadingAuth) {
+        return <div className="flex justify-center items-center h-screen text-xl">Carregando autenticação...</div>;
+    }
+
+    if (!isAuthenticated) {
+        // If not authenticated and not loading, redirect to home (login page)
+        // This should be handled by AuthContext or a ProtectedRoute
+        return <div className="flex justify-center items-center h-screen text-xl">Você precisa estar logado para acessar o dashboard.</div>;
+    }
+
+    // Now, if we reach here, isAuthenticated is true and isLoadingAuth is false
+    // We can conditionally render the onboarding form or the dashboard content
+    if (user && !user.onboarding_complete) {
+        // Removed the check for typeof checkAuthStatus === 'function' and the onComplete prop
+        // OnboardingForm now directly gets checkAuthStatus from its own useAuth hook.
+        return <OnboardingForm userId={user.id} />; 
+    }
+
+    // If isAuthenticated is true AND onboarding is complete
     return (
         <div className="space-y-6 p-6 mt-20">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard EstudaMais.tech</h1>
-                    <p className="text-gray-600 dark:text-gray-300">Transformando o GitHub Student Pack em investimento na sua carreira - Mais de US$ 200.000 disponíveis!</p>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                        Dashboard EstudaMais.tech - Bem-vindo(a), {user?.name || user?.github_login}!
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-300">
+                        Transformando o GitHub Student Pack em investimento na sua carreira - Mais de US$ 200.000 disponíveis!
+                    </p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
                     title="Estudantes Ativos"
-                    value={loadingTotalStudents ? 'Carregando...' : errorTotalStudents ? errorTotalStudents : totalStudentsCount.toLocaleString('pt-BR')}
+                    value={
+                        loadingTotalStudents ? 'Carregando...' :
+                        errorTotalStudents ? errorTotalStudents :
+                        (typeof totalStudentsCount === 'number' ? totalStudentsCount.toLocaleString('pt-BR') : totalStudentsCount)
+                    }
                     change="+18.5%"
                     icon={Users}
                     trend="up"
@@ -311,7 +353,11 @@ export default function Dashboard() {
                 />
                 <MetricCard
                     title="GitHub Student Packs Ativados"
-                    value={loadingTotalStudents ? 'Carregando...' : errorTotalStudents ? errorTotalStudents : totalStudentsCount.toLocaleString('pt-BR')}
+                    value={
+                        loadingGithubUsers ? 'Carregando...' : // AGORA USA O NOVO ESTADO
+                        errorGithubUsers ? errorGithubUsers : // AGORA USA O NOVO ESTADO
+                        (typeof githubUsersCount === 'number' ? githubUsersCount.toLocaleString('pt-BR') : githubUsersCount) // AGORA USA O NOVO ESTADO
+                    }
                     change="+15.2%"
                     icon={Github}
                     trend="up"
@@ -461,3 +507,4 @@ export default function Dashboard() {
         </div>
     );
 }
+// corret

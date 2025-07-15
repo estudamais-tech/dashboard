@@ -1,47 +1,30 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout"; // Seu layout de dashboard existente
-// AJUSTE: Corrigido o caminho do import para o hook useAuth
-import { useAuth } from '../hooks/useAuth'; // Importa o hook useAuth
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { useAuth } from '../hooks/useAuth';
 
-// Importa os componentes existentes
 import Login from '../pages/login/login';
-import Index from "../pages/Index"; // Presumindo que Index é uma página inicial ou de boas-vindas
-import Dashboard from "../pages/Dashboard"; // Dashboard principal (provavelmente admin)
-import Students from "../pages/Students"; // Lista de estudantes (admin)
+import Index from "../pages/Index";
+import Dashboard from "../pages/Dashboard";
+import Students from "../pages/Students";
 import NotFound from "../pages/NotFound";
 
-// Importa os novos componentes para o fluxo do estudante
-import OnboardingForm from '../components/OnboardingForm'; // Formulário de onboarding
-import GitHubProTrack from '@/pages/GitHubPro/GitHubProTrack'; // Componente da trilha detalhada
+
+import OnboardingForm from '../components/OnboardingForm';
+import GitHubProTrack from '@/pages/GitHubPro/GitHubProTrack';
 import Journey from "@/pages/Journey/Journey";
+import PrivacyPolicy from "@/pages/PrivacyPolicy/PrivacyPolicy";
 
 
-// Componente de Rota Privada
 const PrivateRoute = ({ children }) => {
   const location = useLocation();
-  const { isAuthenticated, isLoadingAuth } = useAuth(); // Obtém estados do contexto
+  const { isAuthenticated, isLoadingAuth } = useAuth();
 
-  // Verifica se a URL atual é o dashboard E contém o parâmetro 'code' do GitHub
-  // Isso é crucial para permitir que o Dashboard (ou qualquer componente que processe o callback)
-  // seja renderizado mesmo antes do AuthContext ter finalizado a autenticação via cookie.
   const isGitHubCallback = location.pathname === '/dashboard' && new URLSearchParams(location.search).has('code');
 
-  console.log('PrivateRoute: Verificando autenticação.');
-  console.log('   - isAuthenticated do Context:', isAuthenticated);
-  console.log('   - isLoadingAuth do Context:', isLoadingAuth);
-  console.log('   - Caminho atual:', location.pathname);
-  console.log('   - É um callback do GitHub?', isGitHubCallback);
-
-  // Se o AuthContext ainda está carregando (verificando localStorage/cookie)
-  // OU se é um callback do GitHub (precisa renderizar o componente para processar o código)
   if (isLoadingAuth || isGitHubCallback) {
-    console.log('PrivateRoute: AuthContext está carregando OU é um callback do GitHub. Exibindo tela de verificação/permitindo componente.');
-    // Se for um callback do GitHub, permitimos o children para que o componente possa processar o código.
-    // A tela de carregamento será exibida pelo próprio componente se ele estiver processando.
     if (isGitHubCallback) {
-      return children; // Permite que o componente seja renderizado para processar o código
+      return children;
     }
-    // Caso contrário, se apenas isLoadingAuth, mostra a tela de verificação genérica
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100 font-sans dark:bg-gray-900">
         <div className="text-center p-10 rounded-lg shadow-lg bg-white dark:bg-gray-800 dark:text-white">
@@ -52,14 +35,10 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  // Se o AuthContext terminou de carregar e o usuário está autenticado
   if (isAuthenticated) {
-    console.log('PrivateRoute: Autenticado, renderizando children.');
     return children;
   }
 
-  // Se não estiver autenticado e não for um callback do GitHub, redireciona para o login
-  console.log('PrivateRoute: Não autenticado, redirecionando para o login.');
   return <Navigate to="/" replace />;
 };
 
@@ -67,14 +46,12 @@ const PrivateRoute = ({ children }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Rota para a tela de Login na raiz do seu projeto */}
       <Route path="/" element={<Login />} />
 
-      {/* Rotas protegidas para o fluxo do estudante (sem DashboardLayout),
-          acessíveis após o login e antes/depois do onboarding.
-          A lógica de redirecionamento entre /onboarding e /dashboard/students
-          será gerenciada no AuthContext.
-      */}
+      {/* Rota da Política de Privacidade NÃO PROTEGIDA */}
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+      {/* Rotas PROTEGIDAS pela PrivateRoute */}
       <Route
         path="/onboarding"
         element={
@@ -83,13 +60,9 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
-      {/* A rota /student-dashboard foi removida conforme sua solicitação */}
-
-      {/* Rotas protegidas para o Dashboard Administrativo (com DashboardLayout),
-          exigem autenticação.
-      */}
+      
       <Route
-        path="/dashboard" // Rota principal do dashboard (provavelmente para admin)
+        path="/dashboard"
         element={
           <PrivateRoute>
             <DashboardLayout>
@@ -103,17 +76,17 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <DashboardLayout>
-              <Students /> {/* Este é o componente Students.tsx que você quer ver */}
+              <Students />
             </DashboardLayout>
           </PrivateRoute>
         }
       />
       <Route
-        path="/dashboard/students/journey" // Rota da Jornada Gamificada aninhada
+        path="/dashboard/students/journey"
         element={
           <PrivateRoute>
             <DashboardLayout>
-              <Journey /> {/* Renderiza o novo componente Journey */}
+              <Journey />
             </DashboardLayout>
           </PrivateRoute>
         }
@@ -237,7 +210,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Rota para páginas não encontradas */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
