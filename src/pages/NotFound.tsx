@@ -1,11 +1,14 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
-// Se você já integrou Lottie, mantenha os imports relacionados:
-// import Lottie from 'lottie-react';
-// import animationData from '../public/animations/404-student-error.json'; // Substitua pelo caminho do seu JSON
+import { useAuth } from '../hooks/useAuth'; 
+
 
 const NotFound = () => {
   const location = useLocation();
+  const { user } = useAuth(); 
+
+  // Determinar o nome a ser exibido, com fallback
+  const displayName = user?.name || user?.github_login || 'estudante';
 
   useEffect(() => {
     console.error(
@@ -25,16 +28,16 @@ const NotFound = () => {
             alt="Estudante olhando confuso para uma página não encontrada"
             className="w-64 h-auto md:w-80 lg:w-96 object-contain"
           />
-         
+          
         </div>
 
         {/* Seção do Conteúdo do Texto */}
         <div className="text-center md:text-left">
-          <h1 className="text-6xl md:text-8xl font-extrabold text-[#067cf4] dark:text-purple-400 mb-4 animate-bouncing-404"> {/* <-- ALTERADO AQUI */}
+          <h1 className="text-6xl md:text-8xl font-extrabold text-[#067cf4] dark:text-purple-400 mb-4 animate-bouncing-404">
             404
           </h1>
           <p className="text-2xl md:text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-            Oops! Página não encontrada, estudante!
+            Oops! Página não encontrada, {displayName}!
           </p>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
             Parece que você se perdeu no caminho da sua jornada do conhecimento.

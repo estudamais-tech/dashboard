@@ -196,7 +196,8 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden overflow-x-hidden"
+            // Ajuste aqui: bg-white sempre e text-gray-900 no dark mode
+            className="w-[--sidebar-width] bg-white p-0 text-gray-900 dark:text-gray-900 [&>button]:hidden overflow-x-hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,

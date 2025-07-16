@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 export default function PrivacyPolicy() {
   const navigate = useNavigate();
 
-  // 1. Replicar o estado do tema
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme');
@@ -13,7 +12,6 @@ export default function PrivacyPolicy() {
     return 'light';
   });
 
-  // 2. Replicar o useEffect para aplicar a classe 'dark' e salvar no localStorage
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
@@ -26,7 +24,6 @@ export default function PrivacyPolicy() {
     }
   }, [theme]);
 
-  // 3. Replicar as funções para obter as cores do grid e do background
   const getGridColor = () => {
     return theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
   };
@@ -36,11 +33,10 @@ export default function PrivacyPolicy() {
   };
 
   const handleGoBack = () => {
-    navigate(-1); // Go back to the previous page
+    navigate('/'); // Redireciona para a página de login
   };
 
   return (
-    // 4. Aplicar os estilos de fundo ao elemento pai
     <section
       className="relative flex justify-center items-center min-h-screen font-sans overflow-hidden py-8"
       style={{
@@ -52,12 +48,10 @@ export default function PrivacyPolicy() {
         backgroundSize: '45px 45px'
       }}
     >
-      {/* 5. Efeito de blur (div circular) */}
       <div
         className="w-[80%] h-[25vh] rounded-[50%] bg-[#00A895] absolute top-0 left-1/2 transform -translate-x-1/2 z-0"
         style={{ filter: "blur(200px) " }}
       ></div>
-      {/* 6. Efeito de grão */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -69,7 +63,7 @@ export default function PrivacyPolicy() {
         }}
       ></div>
 
-      <div className="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 z-10">
+      <div className="w-full max-w-6xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 z-10">
         <h1 className="text-4xl font-bold text-center mb-8 text-blue-600 dark:text-blue-400">Política de Privacidade</h1>
         
         <p className="mb-4">
@@ -78,7 +72,7 @@ export default function PrivacyPolicy() {
 
         <h2 className="text-2xl font-semibold mt-6 mb-3 text-gray-800 dark:text-gray-200">1. Coleta de Informações</h2>
         <p className="mb-4">
-          Coletamos informações que você nos fornece diretamente, como **seu nome de usuário do GitHub**, ao se cadastrar ou fazer login em nosso aplicativo, especialmente através da autenticação via GitHub para melhorar a funcionalidade e a segurança do aplicativo.
+          Coletamos informações que você nos fornece diretamente, como seu nome de <b>Usuário e avatar do GitHub </b>, ao se cadastrar ou fazer login em nosso aplicativo, especialmente através da autenticação via GitHub para melhorar a funcionalidade e a segurança do aplicativo.
         </p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3 text-gray-800 dark:text-gray-200">2. Uso das Informações</h2>
@@ -101,7 +95,7 @@ export default function PrivacyPolicy() {
           <li>Com provedores de serviços que nos auxiliam na operação do aplicativo (e.g., serviços de hospedagem), sob rigorosos acordos de confidencialidade.</li>
           <li>Quando exigido por lei ou em resposta a processos legais válidos.</li>
           <li>Para proteger nossos direitos, privacidade, segurança ou propriedade.</li>
-        </ul>
+          </ul>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3 text-gray-800 dark:text-gray-200">4. Segurança dos Dados</h2>
         <p className="mb-4">

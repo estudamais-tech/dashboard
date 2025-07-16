@@ -2,20 +2,25 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 
-// Define a User interface consistente com o que seu backend retorna
-interface User {
+import githubAuthService from '../services/githubAuthService';
+
+export interface User {
     id: number;
     name: string | null;
     avatar_url: string;
     github_login: string;
-    email: string | null;
-    onboarding_complete: boolean;
+    email?: string | null;
+    onboarding_complete: boolean | number;
     course?: string | null;
     currentSemester?: number | null;
     totalSemesters?: number | null;
     areasOfInterest?: string[] | null;
+    points?: number;
+    level?: number;
     totalEconomy?: string;
+    totalPossibleBenefits?: number;
     redeemedBenefits?: any[] | null;
+    has_seen_confetti: boolean;
 }
 
 interface AuthContextType {
@@ -25,6 +30,7 @@ interface AuthContextType {
     login: (user: User) => Promise<void>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
+    exchangeCodeAndLogin: (code: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,49 +47,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { toast } = useToast();
     const location = useLocation();
 
-    // Rotas que não exigem autenticação (constante, não muda entre renders)
     const publicRoutes = ['/', '/privacy-policy'];
 
     const clearAuthState = useCallback(() => {
         setIsAuthenticated(false);
         setUser(null);
         localStorage.removeItem('user');
-    }, []); // Dependências vazias: esta função é estável
+    }, []);
 
     const checkAuthStatus = useCallback(async () => {
-        setIsLoadingAuth(true); // Inicia o loading
+        setIsLoadingAuth(true);
         try {
-            const response = await fetch('http://localhost:3001/api/check-auth', {
-                method: 'GET',
-                credentials: 'include',
-            });
+            const data = await githubAuthService.checkAuthStatus();
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.isAuthenticated && data.user) {
-                    setIsAuthenticated(true);
-                    setUser(data.user);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                } else {
-                    // Se o backend disser que não está autenticado, limpa o estado
-                    clearAuthState();
-                }
-            } else if (response.status === 401) {
-                // Se receber 401, significa que o token é inválido/ausente
-                clearAuthState();
+            if (data.isAuthenticated && data.user) {
+                setIsAuthenticated(true);
+                setUser(data.user as User);
+                localStorage.setItem('user', JSON.stringify(data.user));
             } else {
-                // Outros erros HTTP
-                console.error("Auth check failed with status:", response.status);
                 clearAuthState();
             }
         } catch (error) {
-            // Erros de rede ou outros erros durante a requisição
-            console.error('Erro durante a verificação de autenticação:', error);
+            console.error('Erro durante a verificação de autenticação via service:', error);
             clearAuthState();
         } finally {
-            setIsLoadingAuth(false); // Finaliza o loading
+            setIsLoadingAuth(false);
         }
-    }, [clearAuthState]); // checkAuthStatus depende apenas de clearAuthState, que é estável
+    }, [clearAuthState]);
 
     const login = useCallback(async (userData: User) => {
         if (userData && userData.id) {
@@ -91,12 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
 
-            // Pequeno atraso para garantir que o cookie HttpOnly seja processado pelo navegador
-            // antes de re-verificar o status.
             await new Promise(resolve => setTimeout(resolve, 50));
-            // Apenas re-checa o status para garantir consistência com o backend e atualizar o user object
-            // A navegação será tratada pelo useEffect abaixo.
-            await checkAuthStatus(); 
 
             toast({
                 title: "Login bem-sucedido!",
@@ -111,30 +96,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 variant: "destructive",
             });
         }
-    }, [clearAuthState, checkAuthStatus, toast]); // checkAuthStatus é uma dependência estável
+    }, [clearAuthState, toast]);
 
     const logout = useCallback(async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
+            await githubAuthService.logoutUser();
+            toast({
+                title: "Logout realizado",
+                description: "Você foi desconectado(a).",
+                variant: "success",
             });
-
-            if (response.ok) {
-                toast({
-                    title: "Logout realizado",
-                    description: "Você foi desconectado(a).",
-                    variant: "success",
-                });
-            } else {
-                toast({
-                    title: "Erro ao fazer logout",
-                    description: "Não foi possível desconectar completamente.",
-                    variant: "destructive",
-                });
-            }
         } catch (error) {
+            console.error('Erro ao fazer logout via service:', error);
             toast({
                 title: "Erro de Conexão",
                 description: "Não foi possível conectar ao servidor para logout.",
@@ -142,13 +115,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
         } finally {
             clearAuthState();
-            navigate('/'); // Navega para a home após o logout
+            navigate('/');
         }
     }, [clearAuthState, navigate, toast]);
 
-    // Efeito para a verificação inicial de autenticação ao carregar o provedor
+    const exchangeCodeAndLogin = useCallback(async (code: string) => {
+        setIsLoadingAuth(true);
+        try {
+            const data = await githubAuthService.exchangeCodeForToken(code);
+            if (data && data.user) {
+                await login(data.user);
+            } else {
+                toast({
+                    title: "Autenticação GitHub falhou",
+                    description: "Não foi possível obter os dados do usuário após a troca do código.",
+                    variant: "destructive",
+                });
+                clearAuthState();
+            }
+        } catch (error) {
+            console.error('Error exchanging GitHub code and logging in:', error);
+            toast({
+                title: "Erro de autenticação",
+                description: "Não foi possível processar o código do GitHub. Tente novamente.",
+                variant: "destructive",
+            });
+            clearAuthState();
+        } finally {
+            setIsLoadingAuth(false);
+        }
+    }, [login, toast, clearAuthState]);
+
     useEffect(() => {
-        // Tenta carregar o usuário do localStorage primeiro
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try {
@@ -160,34 +158,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 clearAuthState();
             }
         }
-        // Sempre faz a verificação com o backend para validar o cookie
         checkAuthStatus();
-    }, [checkAuthStatus, clearAuthState]); // checkAuthStatus e clearAuthState são estáveis
+    }, [checkAuthStatus, clearAuthState]);
 
-    // NOVO EFEITO: Lógica de navegação baseada no status de autenticação e onboarding
     useEffect(() => {
-        // Só age se não estiver carregando a autenticação
         if (!isLoadingAuth) {
             const currentPath = location.pathname;
 
             if (isAuthenticated) {
-                // Se autenticado e onboarding não completo, e não está na tela de onboarding, navega
-                if (user && !user.onboarding_complete && currentPath !== '/onboarding') {
+                const isOnboardingComplete = user?.onboarding_complete === true || user?.onboarding_complete === 1;
+
+                if (user && !isOnboardingComplete && currentPath !== '/onboarding') {
                     navigate('/onboarding');
                 }
-                // Se autenticado e onboarding completo, e está em uma rota pública ou onboarding, navega para dashboard
-                else if (user && user.onboarding_complete && (publicRoutes.includes(currentPath) || currentPath === '/onboarding')) {
+                else if (user && isOnboardingComplete && (publicRoutes.includes(currentPath) || currentPath === '/onboarding')) {
                     navigate('/dashboard');
                 }
-                // Caso contrário (autenticado, onboarding completo, e já em uma rota privada correta), não faz nada
             } else {
-                // Se não autenticado e a rota atual NÃO é pública, redireciona para a home
                 if (!publicRoutes.includes(currentPath)) {
                     navigate('/');
                 }
             }
         }
-    }, [isAuthenticated, isLoadingAuth, user, location.pathname, navigate, publicRoutes]); // Dependências controladas
+    }, [isAuthenticated, isLoadingAuth, user, location.pathname, navigate, publicRoutes]);
 
     const contextValue: AuthContextType = {
         isAuthenticated,
@@ -196,6 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         login,
         logout,
         checkAuthStatus,
+        exchangeCodeAndLogin,
     };
 
     return (

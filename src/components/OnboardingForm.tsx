@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Removed useRef as it's no longer needed
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import userService from '../services/userService';
-import { useAuth } from '../hooks/useAuth'; // Import useAuth to get checkAuthStatus directly
+import { useAuth } from '../hooks/useAuth';
 
-// Define the props interface for OnboardingForm - onComplete prop is removed
 interface OnboardingFormProps {
     userId: number;
-    // onComplete: () => Promise<void>; // Removed: Will get checkAuthStatus directly from useAuth
 }
 
-// Interface for OnboardingData
 interface OnboardingData {
     userId: number;
     course: string;
@@ -25,7 +22,6 @@ interface OnboardingData {
     areasOfInterest: string[];
 }
 
-// Removed onComplete from props, userId is still needed
 export default function OnboardingForm({ userId }: OnboardingFormProps) {
     const [course, setCourse] = useState<string>('');
     const [currentSemester, setCurrentSemester] = useState<string>('');
@@ -39,19 +35,14 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
 
     const navigate = useNavigate();
     const { toast } = useToast();
-    const { checkAuthStatus } = useAuth(); // Directly get checkAuthStatus from useAuth
+    const { checkAuthStatus } = useAuth();
 
-    // Removed useRef and its useEffect as checkAuthStatus is now directly available
-    // const onCompleteRef = useRef(onComplete);
-    // useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
-
-    // Log for debugging (now directly logging checkAuthStatus from context)
     useEffect(() => {
         console.log(`[OnboardingForm] Component Mounted: Type of checkAuthStatus from useAuth: ${typeof checkAuthStatus}`);
         if (typeof checkAuthStatus !== 'function') {
             console.error("[OnboardingForm] CRITICAL: checkAuthStatus from useAuth is NOT a function on mount!");
         }
-    }, [checkAuthStatus]); // Depends on checkAuthStatus
+    }, [checkAuthStatus]);
 
     const [theme, setTheme] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -126,12 +117,10 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
         });
     };
 
-    // Usar useCallback para memoizar handleSubmit
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        // Log para depurar o tipo de checkAuthStatus no momento da submissão
         console.log(`[OnboardingForm] handleSubmit: Type of checkAuthStatus at submission: ${typeof checkAuthStatus}`);
 
         let hasError = false;
@@ -183,11 +172,10 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
             await userService.saveOnboardingData(dataToSend);
             toast({
                 title: "Sucesso!",
-                description: "Seus dados de onboarding foram salvos.",
+                description: "Seus dados de onboarding foram salvos. Seja bem-vindo ao EstudaMais.tech",
                 variant: "success",
             });
             
-            // Chame checkAuthStatus diretamente do contexto
             if (typeof checkAuthStatus === 'function') {
                 await checkAuthStatus(); 
                 console.log("[OnboardingForm] checkAuthStatus() called successfully.");
@@ -196,9 +184,9 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
             }
             
             // Pequeno atraso antes de navegar para dar tempo ao AuthContext de atualizar
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 100); // Atraso de 100ms
+           setTimeout(() => {
+             navigate('/dashboard', { state: { fromOnboarding: true } });
+           }, 100);
 
         } catch (error: any) {
             console.error("Erro ao salvar dados de onboarding:", error);
@@ -210,7 +198,7 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
         } finally {
             setIsLoading(false);
         }
-    }, [course, currentSemester, totalSemesters, areasOfInterest, userId, navigate, toast, checkAuthStatus]); // Added checkAuthStatus to dependencies
+    }, [course, currentSemester, totalSemesters, areasOfInterest, userId, navigate, toast, checkAuthStatus]);
 
     return (
         <section
@@ -224,13 +212,11 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                 backgroundSize: '45px 45px'
             }}
         >
-            {/* Elemento de fundo com blur (z-index baixo) */}
             <div
                 className="w-[80%] h-[25vh] rounded-[50%] bg-[#00A895] absolute top-0 left-1/2 transform -translate-x-1/2 z-0"
                 style={{ filter: "blur(200px) " }}
             ></div>
 
-            {/* Efeito de grão (z-index baixo) */}
             <div
                 className="absolute inset-0 pointer-events-none z-[1]"
                 style={{
@@ -242,14 +228,12 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                 }}
             ></div>
 
-            {/* Logo grande no centro do background com opacidade baixa */}
             <img
                 src="/img/icons/logo.webp"
                 alt="Logo de fundo suave"
-                className="absolute mx-auto w-[40vw] inset-0 mt-28 object-contain opacity-5 pointer-events-none z-[2]" // Alterado z-index para 2
+                className="absolute mx-auto w-[40vw] inset-0 mt-28 object-contain opacity-5 pointer-events-none z-[2]"
             />
 
-            {/* Container relativo para o Card (o formulário), com o z-index mais alto */}
             <div className="relative w-full max-w-3xl xl:max-w-4xl z-[3]">
                 <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 rounded-lg shadow-lg p-4 md:p-8 lg:p-10">
                     <CardHeader className="text-center">
@@ -258,7 +242,6 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Campo Curso */}
                             <div>
                                 <Label htmlFor="course" className="dark:text-gray-200">Curso</Label>
                                 <Input
@@ -272,7 +255,6 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                                 />
                             </div>
 
-                            {/* Campos Semestre Atual e Total de Semestres */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="currentSemester" className="dark:text-gray-200">Em qual semestre você está?</Label>
@@ -286,7 +268,7 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                                             setCurrentSemester(e.target.value);
                                             setCurrentSemesterError(null);
                                         }}
-                                        onBlur={() => { // Adicionado onBlur para validar ao sair do campo
+                                        onBlur={() => {
                                             setCurrentSemesterError(validateNumberInput(currentSemester, 'Semestre Atual'));
                                         }}
                                         required
@@ -308,7 +290,7 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                                             setTotalSemesters(e.target.value);
                                             setTotalSemestersError(null);
                                         }}
-                                        onBlur={() => { // Adicionado onBlur para validar ao sair do campo
+                                        onBlur={() => {
                                             setTotalSemestersError(validateNumberInput(totalSemesters, 'Total de Semestres'));
                                         }}
                                         required
@@ -326,7 +308,6 @@ export default function OnboardingForm({ userId }: OnboardingFormProps) {
                                 </p>
                             )}
 
-                            {/* Área de Interesse */}
                             <div>
                                 <Label className="dark:text-gray-200 mb-2 block">Área(s) de Interesse</Label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
