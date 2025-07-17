@@ -1,4 +1,3 @@
-// src/services/trackService.ts
 import { API_BASE_URL } from '../config/apiConfig';
 import { handleApiResponse } from '../utils/apiErrorHandler';
 
@@ -14,8 +13,33 @@ export interface Track {
     completed_at?: string;
 }
 
+// Nova interface para os detalhes do usuário retornados junto com as trilhas
+interface UserDetailsForTracks {
+    github_login: string;
+    name: string | null;
+    avatar_url: string | null;
+}
+
+// Nova interface para o formato de resposta da API de trilhas
+interface GetTracksResponse {
+    user: UserDetailsForTracks;
+    tracks: Track[];
+}
+
+// Interface para as atividades recentes globais (reutilizando a de Dashboard.tsx para consistência)
+interface GlobalRecentActivity {
+    id: string;
+    user: string;
+    avatar_url?: string | null;
+    action: string;
+    value: number;
+    timestamp: number;
+    type: 'track_start' | 'track_complete';
+    trackTitle: string;
+}
+
 const trackService = {
-    async getTracksForUser(): Promise<Track[]> {
+    async getTracksForUser(): Promise<GetTracksResponse> { // Atualizado o tipo de retorno
         try {
             const response = await fetch(`${API_BASE_URL}/user/tracks`, {
                 method: 'GET',
@@ -25,11 +49,12 @@ const trackService = {
                 credentials: 'include',
             });
 
-            const data: any[] = await handleApiResponse(response);
+            const data: GetTracksResponse = await handleApiResponse(response); // Espera a nova estrutura
 
             const validStatuses = ['available', 'in-progress', 'completed'];
 
-            const parsedData: Track[] = data.map(track => ({
+            // Certifica-se de que as trilhas dentro da resposta estão no formato correto
+            const parsedTracks: Track[] = data.tracks.map(track => ({
                 id: track.id,
                 title: track.title,
                 description: track.description,
@@ -45,8 +70,8 @@ const trackService = {
                 completed_at: track.completed_at || undefined,
             }));
 
-            console.log('Tracks received from backend and parsed (trackService):', parsedData);
-            return parsedData;
+            console.log('Tracks received from backend and parsed (trackService):', { user: data.user, tracks: parsedTracks });
+            return { user: data.user, tracks: parsedTracks }; // Retorna a nova estrutura
         } catch (error) {
             console.error('Error in getTracksForUser service:', error);
             throw error;
@@ -114,6 +139,27 @@ const trackService = {
             return data;
         } catch (error) {
             console.error('Error in removeTrackProgress service:', error);
+            throw error;
+        }
+    },
+
+    // NOVA FUNÇÃO: Obter atividades recentes globais
+    async getGlobalRecentActivities(): Promise<GlobalRecentActivity[]> {
+        try {
+            const response = await fetch(`${API_BASE_URL}/tracks/global-activities`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                },
+                // Esta rota pode não precisar de credenciais se for pública
+                // credentials: 'include', 
+            });
+
+            const data: GlobalRecentActivity[] = await handleApiResponse(response);
+            console.log('Global recent activities received from backend (trackService):', data);
+            return data;
+        } catch (error) {
+            console.error('Error in getGlobalRecentActivities service:', error);
             throw error;
         }
     },

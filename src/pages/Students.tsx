@@ -15,7 +15,7 @@ import {
     ExternalLink,
     Linkedin,
     Link,
-    Trash2 // Adicionado ícone de lixeira
+    Trash2
 } from "lucide-react";
 import {
     Dialog,
@@ -31,7 +31,7 @@ import { Label } from "@/components/ui/label";
 
 
 import userService, { User } from '../services/userService';
-import trackService, { Track } from '@/services/trackService';
+import trackService, { Track } from '@/services/trackService'; // Importa Track da nova estrutura
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
@@ -48,6 +48,96 @@ interface Product {
 
 const MOCK_PRODUCTS: Product[] = [
     // Seus produtos mockados aqui
+    {
+        id: "github-pro",
+        name: "GitHub Pro",
+        logoUrl: "https://placehold.co/48x48/1a1a1a/ffffff?text=GH",
+        description: "Acesso a recursos avançados do GitHub.",
+        monthlyValueUSD: 7.00,
+        redemptionLink: "https://education.github.com/pack",
+        area: "Desenvolvimento Web"
+    },
+    {
+        id: "jetbrains-all-products",
+        name: "JetBrains All Products Pack",
+        logoUrl: "https://placehold.co/48x48/000000/ffffff?text=JB",
+        description: "Licença gratuita para todas as IDEs da JetBrains.",
+        monthlyValueUSD: 100.00, // Valor estimado
+        redemptionLink: "https://www.jetbrains.com/community/education/#students",
+        area: "Desenvolvimento de Software"
+    },
+    {
+        id: "microsoft-azure",
+        name: "Microsoft Azure for Students",
+        logoUrl: "https://placehold.co/48x48/0078D4/ffffff?text=AZ",
+        description: "Créditos e serviços gratuitos no Azure.",
+        monthlyValueUSD: 50.00, // Valor estimado
+        redemptionLink: "https://azure.microsoft.com/en-us/free/students/",
+        area: "Cloud Computing"
+    },
+    {
+        id: "aws-educate",
+        name: "AWS Educate",
+        logoUrl: "https://placehold.co/48x48/FF9900/ffffff?text=AWS",
+        description: "Recursos de aprendizado e créditos na AWS.",
+        monthlyValueUSD: 30.00, // Valor estimado
+        redemptionLink: "https://aws.amazon.com/education/awseducate/",
+        area: "Cloud Computing"
+    },
+    {
+        id: "digitalocean-pack",
+        name: "DigitalOcean Student Pack",
+        logoUrl: "https://placehold.co/48x48/0080FF/ffffff?text=DO",
+        description: "Créditos para hospedagem e infraestrutura.",
+        monthlyValueUSD: 15.00, // Valor estimado
+        redemptionLink: "https://www.digitalocean.com/community/pages/hacktoberfest-student-offer",
+        area: "Infraestrutura"
+    },
+    {
+        id: "figma-education",
+        name: "Figma Education",
+        logoUrl: "https://placehold.co/48x48/F24E1E/ffffff?text=F",
+        description: "Acesso gratuito a todas as funcionalidades do Figma.",
+        monthlyValueUSD: 12.00, // Valor estimado
+        redemptionLink: "https://www.figma.com/education/",
+        area: "Design UX/UI"
+    },
+    {
+        id: "canva-pro-education",
+        name: "Canva Pro Education",
+        logoUrl: "https://placehold.co/48x48/00C4CC/ffffff?text=CA",
+        description: "Recursos premium do Canva para estudantes.",
+        monthlyValueUSD: 10.00, // Valor estimado
+        redemptionLink: "https://www.canva.com/education/",
+        area: "Design Gráfico"
+    },
+    {
+        id: "autodesk-education",
+        name: "Autodesk Education",
+        logoUrl: "https://placehold.co/48x48/E21A22/ffffff?text=AD",
+        description: "Software profissional da Autodesk gratuito para estudantes.",
+        monthlyValueUSD: 50.00, // Valor estimado
+        redemptionLink: "https://www.autodesk.com/education/edu-software/overview",
+        area: "Engenharia"
+    },
+    {
+        id: "unity-student",
+        name: "Unity Student Plan",
+        logoUrl: "https://placehold.co/48x48/222C37/ffffff?text=UN",
+        description: "Ferramentas e recursos para desenvolvimento de jogos na Unity.",
+        monthlyValueUSD: 25.00, // Valor estimado
+        redemptionLink: "https://unity.com/products/unity-student",
+        area: "Desenvolvimento de Jogos"
+    },
+    {
+        id: "tableau-for-students",
+        name: "Tableau for Students",
+        logoUrl: "https://placehold.co/48x48/E97627/ffffff?text=TA",
+        description: "Licença gratuita do Tableau Desktop e Tableau Prep.",
+        monthlyValueUSD: 70.00, // Valor estimado
+        redemptionLink: "https://www.tableau.com/academic/students",
+        area: "Análise de Dados"
+    }
 ];
 
 interface StudentDashboardData extends User {
@@ -56,17 +146,14 @@ interface StudentDashboardData extends User {
 }
 
 export default function Students() {
-    // AJUSTE: Desestruturar o objeto 'user' completo do useAuth
     const { user, isAuthenticated, isLoadingAuth } = useAuth();
-    // Acessar as propriedades do usuário a partir do objeto 'user'
     const userName = user?.name;
     const githubLogin = user?.github_login;
-    const userAvatar = user?.avatar_url; // Adicionado para consistência, embora não usado diretamente aqui no Students.tsx para exibição principal
+    const userAvatar = user?.avatar_url;
 
     const { toast } = useToast();
     const navigate = useNavigate();
 
-    // NOVO LOG: Para depurar os valores recebidos no Students.tsx
     useEffect(() => {
         console.log('Students.tsx: user object from useAuth:', user);
         console.log('Students.tsx: userName:', userName);
@@ -96,14 +183,13 @@ export default function Students() {
     const [loadingTracks, setLoadingTracks] = useState(true);
     const [errorTracks, setErrorTracks] = useState<string | null>(null);
 
-    const [isLoading, setIsLoading] = useState<boolean>(false); // Para botões de benefício
-    const [isRemovingTrack, setIsRemovingTrack] = useState<boolean>(false); // Novo estado para carregamento da remoção
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isRemovingTrack, setIsRemovingTrack] = useState<boolean>(false);
 
-    // Estados para o modal de remover trilha
     const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
     const [trackToRemoveId, setTrackToRemoveId] = useState<string | null>(null);
     const [trackToRemoveName, setTrackToRemoveName] = useState<string>('');
-    const [confirmTrackName, setConfirmTrackName] = useState<string>(''); // Para o input de confirmação
+    const [confirmTrackName, setConfirmTrackName] = useState<string>('');
 
 
     const calculateRemainingMonths = useCallback((current: number | null, total: number | null) => {
@@ -114,7 +200,7 @@ export default function Students() {
     }, []);
 
     const calculateTotalPossibleBenefits = useCallback((areas: string[], remainingMonths: number) => {
-        let total = 200000; // Ajustado para número, pois o valor original '200.000' é uma string e causaria NaN
+        let total = 3000.00;
         areas.forEach(area => {
             const productsInArea = MOCK_PRODUCTS.filter(p => p.area === area);
             total += productsInArea.reduce((sum, product) => sum + (product.monthlyValueUSD * remainingMonths), 0);
@@ -122,7 +208,6 @@ export default function Students() {
         return total;
     }, []);
 
-    // Função para buscar todos os dados (Student e Tracks)
     const fetchData = useCallback(async () => {
         if (isLoadingAuth) {
             console.log('Students.tsx: Waiting for AuthProvider to finish loading authentication status.');
@@ -144,7 +229,7 @@ export default function Students() {
 
 
         let studentDataFetched: User | null = null;
-        let tracksFetched: Track[] = [];
+        let tracksFetchedArray: Track[] = []; // Alterado para array
 
         try {
             studentDataFetched = await userService.getStudentDashboardData();
@@ -173,15 +258,18 @@ export default function Students() {
             );
             setFilteredProducts(products);
 
-            tracksFetched = await trackService.getTracksForUser();
-            console.log('Students.tsx (Dashboard): Tracks received from trackService.getTracksForUser():', JSON.stringify(tracksFetched, null, 2));
+            // CORREÇÃO: Desestruturar a resposta de getTracksForUser
+            const { tracks: fetchedTracksResponse } = await trackService.getTracksForUser();
+            tracksFetchedArray = fetchedTracksResponse; // Atribui o array de trilhas
 
-            setAllTracks(tracksFetched);
+            console.log('Students.tsx (Dashboard): Tracks received from trackService.getTracksForUser():', JSON.stringify(tracksFetchedArray, null, 2));
 
-            const completed = tracksFetched.filter(track => track.status === 'completed');
+            setAllTracks(tracksFetchedArray);
+
+            const completed = tracksFetchedArray.filter(track => track.status === 'completed');
             setCompletedTracks(completed);
 
-            const inProgress = tracksFetched.filter(track => track.status === 'in-progress');
+            const inProgress = tracksFetchedArray.filter(track => track.status === 'in-progress');
             setInProgressTracksCount(inProgress.length);
 
         } catch (err: any) {
@@ -368,7 +456,6 @@ export default function Students() {
         );
     }
 
-    // AQUI É O LUGAR CORRETO PARA DECLARAR displayedName
     const displayedName = userName || githubLogin || 'Estudante';
 
     const benefitsProgressPercentage = studentData.totalPossibleBenefits > 0
@@ -396,6 +483,9 @@ export default function Students() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-200 dark:bg-gray-700 p-3 rounded-full shadow-lg">
+                    {userAvatar && ( // Renderiza o avatar se disponível
+                        <img src={userAvatar} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
+                    )}
                     <Github className="w-6 h-6 text-gray-700 dark:text-gray-300" />
                     <span className="text-gray-800 dark:text-gray-200 font-medium">@{githubLogin || 'N/A'}</span>
                 </div>
@@ -506,7 +596,7 @@ export default function Students() {
                                         <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-300" />
                                     </div>
                                     <h3 className="text-xl font-semibold mb-2 dark:text-white">{track.title}</h3>
-                                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow">
+                                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow"> {/* Adicionado flex-grow */}
                                         {track.description}
                                     </p>
                                     <Badge variant="default" className="bg-green-500 text-white dark:bg-green-700 mb-4">Concluída</Badge>
@@ -516,7 +606,6 @@ export default function Students() {
                                     >
                                         <ExternalLink className="w-4 h-4 mr-2" /> Ver Trilha
                                     </Button>
-                                    {/* Botão para Remover Trilha */}
                                     <Button
                                         variant="outline"
                                         className="w-full text-red-500 border-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
@@ -548,11 +637,11 @@ export default function Students() {
                     ) : (
                         filteredProducts.map((product) => (
                             <Card key={product.id} className="dark:bg-gray-900 dark:border-gray-600 hover:shadow-lg transition-shadow duration-200">
-                                <CardContent className="p-5 flex flex-col items-start">
+                                <CardContent className="p-5 flex flex-col items-start justify-between"> {/* Adicionado justify-between aqui */}
                                     <img src={product.logoUrl} alt={`${product.name} logo`} className="w-12 h-12 rounded-full mb-3 border border-gray-200 dark:border-gray-700" />
                                     <h3 className="text-xl font-semibold mb-2 dark:text-white">{product.name}</h3>
                                     <Badge variant="secondary" className="mb-3 bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">{product.area}</Badge>
-                                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow">{product.description}</p>
+                                    <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 flex-grow">{product.description}</p> {/* Adicionado flex-grow */}
                                     <div className="flex items-center justify-between w-full mb-4">
                                         <div className="flex items-center gap-1 text-lg font-bold text-green-600 dark:text-green-400">
                                             <DollarSign className="w-5 h-5" />
@@ -593,9 +682,8 @@ export default function Students() {
                             Para confirmar a remoção do progresso da trilha, digite o nome completo da trilha abaixo. Esta ação é irreversível e deduzirá a recompensa associada da sua economia total.
                         </DialogDescription>
                     </DialogHeader>
-                    {/* ADICIONADO: Margem inferior para espaçar as labels dos inputs */}
                     <div className="grid gap-4 py-4">
-                        <div className="flex flex-col gap-2"> {/* Alterado para flex-col para colocar Label acima do Input */}
+                        <div className="flex flex-col gap-2">
                             <Label htmlFor="trackName" className="text-left dark:text-gray-300">
                                 Nome da Trilha: <span className="font-semibold text-blue-400">{trackToRemoveName}</span>
                             </Label>
@@ -621,7 +709,7 @@ export default function Students() {
                             onClick={handleRemoveTrack}
                             disabled={isRemovingTrack || confirmTrackName !== trackToRemoveName}
                         >
-                            {isRemovingTrack ? 'Removendo...' : 'Confirmar Remoção'}
+                            Remover
                         </Button>
                     </DialogFooter>
                 </DialogContent>

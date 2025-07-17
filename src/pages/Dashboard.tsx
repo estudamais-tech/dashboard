@@ -12,7 +12,10 @@ import {
     GraduationCap,
     Trophy,
     Target,
-    Star
+    Star,
+    ArrowLeft, // Adicionado para os botões de paginação
+    ArrowRight, // Adicionado para os botões de paginação
+    Award // Novo ícone para o ranking
 } from "lucide-react";
 
 import githubAuthService from '../services/githubAuthService';
@@ -25,7 +28,8 @@ import { ConfettiEffect } from '@/components/ui/confettiEffect';
 // Nova interface para as atividades recentes, baseada nos dados das trilhas
 interface RecentActivity {
     id: string; // Pode ser o ID da trilha + um sufixo para diferenciar start/complete
-    user: string;
+    user: string; // Nome do usuário
+    avatar_url?: string | null; // Adicionado avatar_url
     action: string; // Ex: 'iniciou a trilha', 'completou a trilha'
     value: number; // Valor da recompensa
     timestamp: number; // Timestamp para ordenação e formatação
@@ -44,7 +48,7 @@ export default function Dashboard() {
     const [loadingTotalStudents, setLoadingTotalStudents] = useState<boolean>(true);
     const [errorTotalStudents, setErrorTotalStudents] = useState<string | null>(null);
 
-    const [totalInvestmentLiberated, setTotalInvestmentLiberated] = useState<number | null>(null);
+    const [totalInvestmentLiberated, setTotalInvestmentLiberated] = useState<number | null>(null); // Este será o valor TOTAL liberado globalmente
     const [loadingTotalInvestment, setLoadingTotalInvestment] = useState<boolean>(true);
     const [errorTotalInvestment, setErrorTotalInvestment] = useState<string | null>(null);
 
@@ -71,14 +75,37 @@ export default function Dashboard() {
     const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
     const [loadingRecentActivities, setLoadingRecentActivities] = useState<boolean>(true);
     const [errorRecentActivities, setErrorRecentActivities] = useState<string | null>(null);
+    const [activitiesCurrentPage, setActivitiesCurrentPage] = useState(1); // Novo estado para a página atual das atividades
+    const activitiesItemsPerPage = 10; // Exibir 10 atividades por página
+
+    // Estado para armazenar as estatísticas globais
+    const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+
+    // Novos estados para o ranking de estudantes
+    const [rankedStudents, setRankedStudents] = useState<User[]>([]);
+    const [loadingRankedStudents, setLoadingRankedStudents] = useState<boolean>(true);
+    const [errorRankedStudents, setErrorRankedStudents] = useState<string | null>(null);
+    const [rankingCurrentPage, setRankingCurrentPage] = useState(1);
+    const rankingItemsPerPage = 10; // Exibir 10 estudantes por página no ranking
 
     // Mock data for most valuable tools (replace with API calls if available)
     const [mostValuableTools] = useState<any[]>([
-        { name: 'JetBrains IDEs', activations: 321, value: 1195.20 },
-        { name: 'GitHub Copilot', activations: 456, value: 480.00 },
-        { name: 'Notion Education', activations: 287, value: 384.00 },
-        { name: 'GitHub Pro', activations: 198, value: 336.00 },
-    ]);
+        { name: 'JetBrains IDEs', activations: 321, value: 1195.20, category: 'Desenvolvimento' },
+        { name: 'GitHub Copilot', activations: 456, value: 480.00, category: 'Produtividade' },
+        { name: 'Notion Education', activations: 287, value: 384.00, category: 'Organização' },
+        { name: 'GitHub Pro', activations: 198, value: 336.00, category: 'Desenvolvimento' },
+        { name: 'Microsoft Azure Dev Tools', activations: 150, value: 250.00, category: 'Cloud' },
+        { name: 'Figma Education', activations: 200, value: 180.00, category: 'Design' },
+        { name: 'DigitalOcean Student Pack', activations: 120, value: 100.00, category: 'Infraestrutura' },
+        { name: 'Canva Pro Education', activations: 180, value: 90.00, category: 'Design' },
+        { name: 'Visual Studio Enterprise', activations: 90, value: 1500.00, category: 'Desenvolvimento' },
+        { name: 'AWS Educate', activations: 110, value: 500.00, category: 'Cloud' },
+        { name: 'Tableau Desktop', activations: 75, value: 800.00, category: 'Análise de Dados' },
+        { name: 'Unity Student', activations: 130, value: 200.00, category: 'Game Dev' },
+        { name: 'Autodesk Fusion 360', activations: 60, value: 300.00, category: 'Design 3D' },
+        { name: 'Twilio', activations: 100, value: 50.00, category: 'Comunicações' },
+        { name: 'Stripe', activations: 50, value: 75.00, category: 'Pagamentos' },
+    ].sort((a, b) => b.value - a.value)); // Ordena por valor para simular "mais valiosas"
 
     // Effect for handling GitHub authorization code
     useEffect(() => {
@@ -122,31 +149,33 @@ export default function Dashboard() {
         }
     }, [location.state, navigate, location.pathname]);
 
-    // Effect for fetching authenticated dashboard data
+    // Effect for fetching GLOBAL dashboard data
     useEffect(() => {
-        if (isAuthenticated && !authCodeProcessed.current) {
-            const fetchData = async () => {
-                // Fetch Global Stats
+        if (isAuthenticated && !isLoadingAuth && !authCodeProcessed.current) {
+            const fetchGlobalData = async () => {
+                console.log('Fetching global stats...');
                 try {
                     setLoadingTotalStudents(true);
                     setLoadingTotalInvestment(true);
                     setLoadingGithubUsers(true);
 
                     const stats = await statsService.getGlobalStats();
+                    setGlobalStats(stats); // Armazena as estatísticas globais no estado
                     setTotalStudentsCount(stats.total_usuarios);
-                    setTotalInvestmentLiberated(parseFloat(stats.total_unlocked_value));
+                    // Alterado para mostrar o valor TOTAL liberado globalmente
+                    setTotalInvestmentLiberated(parseFloat(stats.total_unlocked_value)); 
                 } catch (err: unknown) {
                     console.error('Erro ao buscar estatísticas globais:', err);
                     setErrorTotalStudents('Falha ao carregar');
                     setErrorTotalInvestment('Falha ao carregar');
                     setTotalStudentsCount(null);
                     setTotalInvestmentLiberated(null);
+                    setGlobalStats(null); // Limpa o estado em caso de erro
                 } finally {
                     setLoadingTotalStudents(false);
                     setLoadingTotalInvestment(false);
                 }
 
-                // Fetch GitHub Users Count Separately
                 try {
                     const githubCount = await userService.getGithubUsersCount();
                     setGithubUsersCount(githubCount);
@@ -157,20 +186,32 @@ export default function Dashboard() {
                 } finally {
                     setLoadingGithubUsers(false);
                 }
+            };
+            fetchGlobalData();
+        }
+    }, [isAuthenticated, isLoadingAuth, authCodeProcessed.current]); // Dependencies for global data fetch
 
+    // Effect for fetching USER-SPECIFIC dashboard data (depends on globalStats)
+    useEffect(() => {
+        if (isAuthenticated && user?.id && globalStats) { // Only run if authenticated, user ID exists, and globalStats are loaded
+            const fetchUserData = async () => {
+                console.log('Fetching user-specific data...');
                 // Fetch Student Dashboard Data
                 try {
                     setLoadingCalculatorData(true);
                     setErrorCalculatorData(null);
                     if (user?.id) {
                         const data: User = await userService.getStudentDashboardData();
-                        const totalPossible = data.totalPossibleBenefits || 0;
-                        const totalSaved = data.totalSaved || 0;
+                        const totalPossible = 3000.00; // Valor fixo solicitado pelo usuário
+                        
+                        // O valor já investido pessoalmente é o totalEconomy do usuário
+                        let calculatedAlreadyInvested = parseFloat(data.totalEconomy || '0');
+
                         setCalculatorTotalAvailable(totalPossible);
-                        setCalculatorAlreadyInvested(totalSaved);
-                        const balance = totalPossible - totalSaved;
+                        setCalculatorAlreadyInvested(calculatedAlreadyInvested);
+                        const balance = totalPossible - calculatedAlreadyInvested;
                         setCalculatorBalance(balance);
-                        const progress = totalPossible > 0 ? Math.round((totalSaved / totalPossible) * 100) : 0;
+                        const progress = totalPossible > 0 ? Math.round((calculatedAlreadyInvested / totalPossible) * 100) : 0;
                         setCalculatorProgressValue(progress);
                     }
                 } catch (err: unknown) {
@@ -184,72 +225,71 @@ export default function Dashboard() {
                     setLoadingCalculatorData(false);
                 }
 
-                // Fetch Tracks and generate Recent Activities
+                // Fetch Tracks for user's personal progress (still needed for "Progresso da Jornada Gamificada")
                 try {
                     setLoadingTracks(true);
-                    setLoadingCompletionRate(true);
-                    setLoadingRecentActivities(true); // Inicia loading para atividades recentes
                     setErrorTracks(null);
-                    setErrorCompletionRate(null);
-                    setErrorRecentActivities(null); // Limpa erro anterior
-
-                    const fetchedTracks = await trackService.getTracksForUser();
-                    const totalTracks = fetchedTracks.length;
-                    const completedTracks = fetchedTracks.filter(track => track.status === 'completed').length;
+                    const { tracks: fetchedPersonalTracks } = await trackService.getTracksForUser();
+                    setTracks(fetchedPersonalTracks); // Set personal tracks here
+                    
+                    const totalTracks = fetchedPersonalTracks.length;
+                    const completedTracks = fetchedPersonalTracks.filter(track => track.status === 'completed').length;
                     const currentCompletionRate = totalTracks > 0 ? (completedTracks / totalTracks) * 100 : 0;
-                    setCompletionRate(currentCompletionRate);
-                    setTracks(fetchedTracks);
-
-                    // Gerar atividades recentes a partir das trilhas
-                    const activities: RecentActivity[] = [];
-                    const userName = user?.name || user?.github_login || 'Um estudante';
-
-                    fetchedTracks.forEach(track => {
-                        if (track.started_at) {
-                            activities.push({
-                                id: `${track.id}-start`,
-                                user: userName,
-                                action: `iniciou a trilha "${track.title}"`,
-                                value: track.reward_value,
-                                timestamp: new Date(track.started_at).getTime(),
-                                type: 'track_start',
-                                trackTitle: track.title,
-                            });
-                        }
-                        if (track.completed_at && track.status === 'completed') {
-                            activities.push({
-                                id: `${track.id}-complete`,
-                                user: userName,
-                                action: `completou a trilha "${track.title}"`,
-                                value: track.reward_value,
-                                timestamp: new Date(track.completed_at).getTime(),
-                                type: 'track_complete',
-                                trackTitle: track.title,
-                            });
-                        }
-                    });
-
-                    // Ordenar atividades da mais recente para a mais antiga
-                    const sortedActivities = activities.sort((a, b) => b.timestamp - a.timestamp);
-                    setRecentActivities(sortedActivities);
-
+                    setCompletionRate(currentCompletionRate); // This completion rate is personal
                 } catch (err: unknown) {
-                    console.error('Erro ao buscar trilhas ou gerar atividades recentes:', err);
+                    console.error('Erro ao buscar trilhas pessoais:', err);
                     setErrorTracks('Não disponível');
-                    setErrorCompletionRate('Falha ao carregar');
-                    setErrorRecentActivities('Falha ao carregar atividades'); // Define erro para atividades
                     setTracks([]);
                     setCompletionRate(null);
-                    setRecentActivities([]); // Limpa atividades em caso de erro
                 } finally {
                     setLoadingTracks(false);
-                    setLoadingCompletionRate(false);
-                    setLoadingRecentActivities(false); // Finaliza loading para atividades recentes
+                    setLoadingCompletionRate(false); // This is for the personal completion rate
+                }
+
+                // Fetch Global Recent Activities (for pagination)
+                try {
+                    setLoadingRecentActivities(true);
+                    setErrorRecentActivities(null);
+                    const globalActivities = await trackService.getGlobalRecentActivities();
+                    const sortedActivities = globalActivities.sort((a, b) => b.timestamp - a.timestamp);
+                    // Store all sorted activities for pagination
+                    setRecentActivities(sortedActivities);
+                } catch (err: unknown) {
+                    console.error('Erro ao buscar atividades recentes globais:', err);
+                    setErrorRecentActivities('Falha ao carregar atividades');
+                    setRecentActivities([]);
+                } finally {
+                    setLoadingRecentActivities(false);
+                }
+
+                // Fetch all students for ranking
+                try {
+                    setLoadingRankedStudents(true);
+                    setErrorRankedStudents(null);
+                    const allStudents = await userService.getAllStudents();
+                    // Filter students who have completed onboarding and have activated benefits
+                    const filterAndSortStudents = allStudents
+                        .filter(s => s.onboarding_complete === 1 && s.benefits_activated > 0)
+                        .sort((a, b) => {
+                            // Sort by benefits_activated descending
+                            if (b.benefits_activated !== a.benefits_activated) {
+                                return b.benefits_activated - a.benefits_activated;
+                            }
+                            // If benefits_activated are equal, sort by totalEconomy descending
+                            return parseFloat(b.totalEconomy || '0') - parseFloat(a.totalEconomy || '0');
+                        });
+                    setRankedStudents(filterAndSortStudents);
+                } catch (err: unknown) {
+                    console.error('Erro ao buscar estudantes para o ranking:', err);
+                    setErrorRankedStudents('Falha ao carregar ranking');
+                    setRankedStudents([]);
+                } finally {
+                    setLoadingRankedStudents(false);
                 }
             };
-            fetchData();
+            fetchUserData();
         }
-    }, [isAuthenticated, isLoadingAuth, authCodeProcessed.current, user?.id, user?.name, user?.github_login]); // Adicionado user?.name e user?.github_login para o useCallback
+    }, [isAuthenticated, user?.id, globalStats]); // Dependencies for user-specific data fetch
 
     const formatCurrency = (value: number | null | string) => {
         if (typeof value === 'number') {
@@ -325,12 +365,37 @@ export default function Dashboard() {
         return 'N/A';
     };
 
+    // Lógica de Paginação para o Ranking
+    const totalRankingPages = Math.ceil(rankedStudents.length / rankingItemsPerPage);
+    const indexOfLastRankingItem = rankingCurrentPage * rankingItemsPerPage;
+    const indexOfFirstRankingItem = indexOfLastRankingItem - rankingItemsPerPage;
+    const currentRankedStudents = rankedStudents.slice(indexOfFirstRankingItem, indexOfLastRankingItem);
+
+    const paginateRanking = (pageNumber: number) => setRankingCurrentPage(pageNumber);
+
+    // Lógica de Paginação para Atividades Recentes
+    const totalActivitiesPages = Math.ceil(recentActivities.length / activitiesItemsPerPage);
+    const indexOfLastActivityItem = activitiesCurrentPage * activitiesItemsPerPage;
+    const indexOfFirstActivityItem = indexOfLastActivityItem - activitiesItemsPerPage;
+    const currentActivities = recentActivities.slice(indexOfFirstActivityItem, indexOfLastActivityItem);
+
+    const paginateActivities = (pageNumber: number) => setActivitiesCurrentPage(pageNumber);
+
+
     if (isLoadingAuth) {
-        return <div className="flex justify-center items-center h-screen text-xl">Carregando autenticação...</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 text-xl text-gray-700 dark:text-gray-300">
+                Carregando autenticação...
+            </div>
+        );
     }
 
     if (!isAuthenticated) {
-        return <div className="flex justify-center items-center h-screen text-xl">Você precisa estar logado para acessar o dashboard.</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-100 dark:bg-gray-900 text-xl text-gray-700 dark:text-gray-300">
+                Você precisa estar logado para acessar o dashboard.
+            </div>
+        );
     }
 
     if (user && !user.onboarding_complete) {
@@ -347,14 +412,14 @@ export default function Dashboard() {
                 duration={5000}
             />
 
-            <section className="space-y-6 p-6 mt-20">
-                <div className="flex items-center justify-between">
+            <section className="space-y-6 p-6 mt-20 max-w-7xl mx-auto"> {/* Adicionado max-w-7xl e mx-auto para centralizar */}
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                             Dashboard EstudaMais.tech - Bem-vindo(a), {user?.name || user?.github_login}!
                         </h1>
                         <p className="text-gray-600 dark:text-gray-300">
-                            Transformando o GitHub Student Pack em investimento na sua carreira - Mais de US$ 200.000 disponíveis!
+                            Transformando o GitHub Student Pack em investimento na sua carreira - Mais de US$ 3.000 disponíveis! {/* Texto atualizado */}
                         </p>
                     </div>
                 </div>
@@ -373,7 +438,7 @@ export default function Dashboard() {
                         className="dark:bg-gray-800 dark:text-white dark:border-gray-700 flex flex-col justify-between"
                     />
                     <MetricCard
-                        title="Investimento Global Liberado"
+                        title="Valor Total Liberado Globalmente"
                         value={loadingTotalInvestment ? 'Carregando...' : errorTotalInvestment ? errorTotalInvestment : formatCurrency(totalInvestmentLiberated)}
                         change="+22.3%"
                         icon={DollarSign}
@@ -437,11 +502,12 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
+                    {/* Card de Atividade Recente - Exibindo com paginação */}
                     <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                                 <Clock className="w-5 h-5" />
-                                Atividade Recente
+                                Atividades Recentes Globais
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -450,20 +516,56 @@ export default function Dashboard() {
                                     <p className="text-center text-gray-500 dark:text-gray-400">Carregando atividades...</p>
                                 ) : errorRecentActivities ? (
                                     <p className="text-center text-red-500">{errorRecentActivities}</p>
-                                ) : recentActivities.length > 0 ? (
-                                    recentActivities.map((activity) => (
-                                        <div key={activity.id} className="flex items-center justify-between">
-                                            <div>
-                                                <p className="font-medium">{activity.user} {activity.action}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {activity.type === 'track_complete' ? `+US$ ${activity.value} liberados` : activity.type === 'track_start' ? `Trilha iniciada` : ''} • {formatTimeAgo(activity.timestamp)}
-                                                </p>
+                                ) : currentActivities.length > 0 ? (
+                                    <>
+                                        {currentActivities.map((activity) => (
+                                            <div 
+                                                key={activity.id} 
+                                                className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600"
+                                            >
+                                                {activity.avatar_url && (
+                                                    <img 
+                                                        src={activity.avatar_url} 
+                                                        alt={activity.user} 
+                                                        className="w-8 h-8 rounded-full object-cover border-2 border-blue-400" 
+                                                    />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{activity.user}</p>
+                                                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{activity.action}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                        {activity.type === 'track_complete' ? `+US$ ${activity.value.toFixed(2)} liberados` : ''} • {formatTimeAgo(activity.timestamp)}
+                                                    </p>
+                                                </div>
+                                                {activity.type === 'track_complete' && (
+                                                    <div className="font-bold text-green-600 dark:text-green-400 text-sm">
+                                                        +US$ {activity.value.toFixed(2)}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className={`font-bold ${activity.type === 'track_complete' ? 'text-green-600' : 'text-blue-600'}`}>
-                                                {activity.type === 'track_complete' ? `+US$ ${activity.value}` : ''}
+                                        ))}
+                                        {totalActivitiesPages > 1 && (
+                                            <div className="flex justify-center items-center space-x-2 mt-4">
+                                                <button
+                                                    onClick={() => paginateActivities(activitiesCurrentPage - 1)}
+                                                    disabled={activitiesCurrentPage === 1}
+                                                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                                                >
+                                                    <ArrowLeft className="w-5 h-5" />
+                                                </button>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    Página {activitiesCurrentPage} de {totalActivitiesPages}
+                                                </span>
+                                                <button
+                                                    onClick={() => paginateActivities(activitiesCurrentPage + 1)}
+                                                    disabled={activitiesCurrentPage === totalActivitiesPages}
+                                                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                                                >
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </button>
                                             </div>
-                                        </div>
-                                    ))
+                                        )}
+                                    </>
                                 ) : (
                                     <p className="text-center text-gray-500 dark:text-gray-400">Nenhuma atividade recente.</p>
                                 )}
@@ -471,27 +573,108 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
+                    {/* Card de Ranking Global por Trilhas Desbloqueadas */}
                     <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
-                                <Star className="w-5 h-5" />
-                                Ferramentas Mais Valiosas
+                                <Award className="w-5 h-5 text-yellow-500" />
+                                Ranking Global (Trilhas Desbloqueadas)
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {mostValuableTools.map((tool, index) => (
-                                    <div key={index} className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <p className="font-medium">{tool.name}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{tool.activations} ativações</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium text-green-600">US$ {tool.value.toFixed(2)}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">por estudante</p>
-                                        </div>
+                                {loadingRankedStudents ? (
+                                    <p className="text-center text-gray-500 dark:text-gray-400">Carregando ranking...</p>
+                                ) : errorRankedStudents ? (
+                                    <p className="text-center text-red-500">{errorRankedStudents}</p>
+                                ) : currentRankedStudents.length > 0 ? (
+                                    <>
+                                        {currentRankedStudents.map((student, index) => (
+                                            <div key={student.id} className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                                <span className="font-bold text-lg text-blue-600 dark:text-blue-400 w-8 text-center">
+                                                    {indexOfFirstRankingItem + index + 1}.
+                                                </span>
+                                                {student.avatar_url && (
+                                                    <img 
+                                                        src={student.avatar_url} 
+                                                        alt={student.name || student.github_login || 'Estudante'} 
+                                                        className="w-8 h-8 rounded-full object-cover border-2 border-green-400" 
+                                                    />
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                                                        {student.name || student.github_login || 'Estudante'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
+                                                        {student.benefits_activated} Trilhas Desbloqueadas
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                        Economia: {formatCurrency(parseFloat(student.totalEconomy || '0'))}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {totalRankingPages > 1 && (
+                                            <div className="flex justify-center items-center space-x-2 mt-4">
+                                                <button
+                                                    onClick={() => paginateRanking(rankingCurrentPage - 1)}
+                                                    disabled={rankingCurrentPage === 1}
+                                                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                                                >
+                                                    <ArrowLeft className="w-5 h-5" />
+                                                </button>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    Página {rankingCurrentPage} de {totalRankingPages}
+                                                </span>
+                                                <button
+                                                    onClick={() => paginateRanking(rankingCurrentPage + 1)}
+                                                    disabled={rankingCurrentPage === totalRankingPages}
+                                                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                                                >
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="text-center text-gray-500 dark:text-gray-400">Nenhum estudante no ranking ainda.</p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Card de Ferramentas Mais Valiosas - Ocupando a largura total em telas grandes */}
+                    <Card className="lg:col-span-2 dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                                <Star className="w-5 h-5" />
+                                Ferramentas Mais Valiosas (Popularidade e Valor)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {mostValuableTools.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Layout de duas colunas para ferramentas */}
+                                        {mostValuableTools.map((tool, index) => (
+                                            <div key={index} className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                                                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-bold">
+                                                    {index + 1}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm truncate">{tool.name}</p>
+                                                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{tool.activations} ativações</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Categoria: {tool.category}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-bold text-green-600 dark:text-green-400 text-sm">US$ {tool.value.toFixed(2)}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">por estudante</p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                ) : (
+                                    <p className="text-center text-gray-500 dark:text-gray-400">Nenhuma ferramenta valiosa encontrada.</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
